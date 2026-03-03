@@ -214,17 +214,18 @@ class MAVATPlansAdapter(SourceAdapter):
 
         if parcels and not plans:
             gush, helka = parcels[0]
-            mavat_url = (
-                f"https://mavat.iplan.gov.il/SV4/1?gush={gush}&parcel={helka}"
+            fallback_url = (
+                f"https://www.govmap.gov.il/?lay=XPLAN"
+                f"&q=%D7%92%D7%95%D7%A9+{gush}+%D7%97%D7%9C%D7%A7%D7%94+{helka}"
             )
             plans.append(
                 BuildingPlan(
-                    name=f'חיפוש במבא"ת – גוש {gush} חלקה {helka}',
+                    name=f'חיפוש תוכניות – גוש {gush} חלקה {helka}',
                     plan_type=PlanType.OTHER,
                     status="קישור לחיפוש ידני",
                     source=self.display_name,
-                    source_url=mavat_url,
-                    document_url=mavat_url,
+                    source_url=fallback_url,
+                    document_url=fallback_url,
                     embed_type="link",
                     details={
                         "gush": gush,
@@ -234,17 +235,17 @@ class MAVATPlansAdapter(SourceAdapter):
                 )
             )
         elif not parcels:
-            mavat_url = (
-                f"https://mavat.iplan.gov.il/SV4/1?center={lon},{lat}&zoom=17"
+            fallback_url = (
+                f"https://www.govmap.gov.il/?c={lon},{lat}&z=17&lay=XPLAN"
             )
             plans.append(
                 BuildingPlan(
-                    name='חיפוש במבא"ת (מאגר תכניות ארצי)',
+                    name='חיפוש תוכניות (GovMap)',
                     plan_type=PlanType.OTHER,
                     status="קישור לחיפוש ידני",
                     source=self.display_name,
-                    source_url=mavat_url,
-                    document_url=mavat_url,
+                    source_url=fallback_url,
+                    document_url=fallback_url,
                     embed_type="link",
                     details={"is_fallback": True},
                 )
