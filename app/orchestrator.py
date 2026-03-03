@@ -22,6 +22,9 @@ from app.services.source_registry import CitySourceRegistry
 logger = logging.getLogger(__name__)
 
 
+_STREET_PREFIXES = {"רחוב", "שדרות", "דרך", "סמטת", "שד'"}
+
+
 def _filter_plans_by_address(
     plans: list[BuildingPlan],
     street: str,
@@ -31,9 +34,11 @@ def _filter_plans_by_address(
     if not street:
         return plans
 
-    street_clean = street.replace("רחוב", "").strip()
+    words = [w for w in street.split() if w not in _STREET_PREFIXES and len(w) > 1]
+    if not words:
+        return plans
 
-    matched = [p for p in plans if street_clean in p.name]
+    matched = [p for p in plans if any(w in p.name for w in words)]
 
     # Fallback: if no plan name mentions the street, return all
     # so the user still sees something rather than empty results.

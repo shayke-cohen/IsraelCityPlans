@@ -12,6 +12,7 @@ from app.orchestrator import SearchOrchestrator
 from app.routers.address import router as address_router
 from app.routers.search import router as search_router
 from app.services.address_data import AddressDataService
+from app.services.playwright_capture import shutdown_browser, CAPTURES_DIR
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
     app.state.orchestrator = orch
     app.state.address_data = AddressDataService()
     yield
+    await shutdown_browser()
     await orch.shutdown()
 
 
@@ -35,6 +37,9 @@ app = FastAPI(
 
 app.include_router(search_router)
 app.include_router(address_router)
+
+CAPTURES_DIR.mkdir(exist_ok=True)
+app.mount("/captures", StaticFiles(directory=str(CAPTURES_DIR)), name="captures")
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
