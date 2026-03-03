@@ -28,6 +28,8 @@ class BuildingPlan(BaseModel):
     source: str = ""
     source_url: str = ""
     document_url: str = ""
+    thumbnail_url: str = ""
+    embed_type: str = "link"  # "link", "pdf", "image", "iframe"
     details: dict = Field(default_factory=dict)
 
 

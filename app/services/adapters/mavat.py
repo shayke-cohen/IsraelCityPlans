@@ -49,5 +49,6 @@ class MAVATAdapter(SourceAdapter):
                 source=self.display_name,
                 source_url=mavat_url,
                 document_url=mavat_url,
+                embed_type="iframe",
             )
         ]

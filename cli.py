@@ -121,8 +121,7 @@ def search(address: str, plans_only: bool, images_only: bool):
             )
     elif not plans_only:
         console.print(
-            "\n[yellow]לא נמצאו תמונות רחוב."
-            " (הגדירו MAPILLARY_CLIENT_TOKEN או GOOGLE_STREETVIEW_API_KEY ב-.env)[/]"
+            "\n[yellow]לא נמצאו תמונות רחוב באזור זה.[/]"
         )
 
     # Map link

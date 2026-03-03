@@ -21,7 +21,7 @@ _XPLAN_QUERY_URL = (
     "https://ags.iplan.gov.il/arcgisiplan/rest/services/"
     "PlanningPublic/Xplan/MapServer/{layer}/query"
 )
-_PLAN_LAYERS = [1, 0]  # Layer 1 = polygon plans, Layer 0 = point entities
+_PLAN_LAYERS = [1, 0]
 
 _SSL_CTX = ssl.create_default_context()
 _SSL_CTX.set_ciphers("DEFAULT@SECLEVEL=1")
@@ -47,10 +47,16 @@ def _classify(name: str) -> PlanType:
 
 
 def _mavat_url(pl_number: str) -> str:
-    """Build a deep-link into the MAVAT plan viewer."""
     if not pl_number:
         return ""
     return f"https://mavat.iplan.gov.il/SV4/1/{pl_number}"
+
+
+def _mavat_docs_url(pl_number: str) -> str:
+    """Link to the MAVAT documents tab for this plan."""
+    if not pl_number:
+        return ""
+    return f"https://mavat.iplan.gov.il/SV4/1/{pl_number}#documents"
 
 
 @register_adapter
@@ -106,7 +112,7 @@ class XPLANAdapter(SourceAdapter):
                 seen_numbers.add(plan_number)
 
                 status = (attrs.get("station_desc") or "").strip()
-                mavat_url = _mavat_url(plan_number)
+                mavat_link = _mavat_url(plan_number)
 
                 all_plans.append(
                     BuildingPlan(
@@ -115,8 +121,9 @@ class XPLANAdapter(SourceAdapter):
                         date=_epoch_to_date(attrs.get("last_update_date")),
                         status=status,
                         source=self.display_name,
-                        source_url=mavat_url,
-                        document_url=mavat_url,
+                        source_url=mavat_link,
+                        document_url=mavat_link,
+                        embed_type="iframe",
                         details={
                             "plan_number": plan_number,
                             "mavat_code": attrs.get("mavat_code", ""),

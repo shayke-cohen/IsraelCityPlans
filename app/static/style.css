@@ -41,13 +41,7 @@ body {
 .badge-orange { background: #ffedd5; color: #c2410c; }
 .badge-gray { background: #f3f4f6; color: #6b7280; }
 .badge-blue { background: #dbeafe; color: #1d4ed8; }
-
-/* Source color mapping */
-[data-source="tlv_archive"] { --source-color: #0f766e; }
-[data-source="xplan"] { --source-color: #3730a3; }
-[data-source="mavat"] { --source-color: #7c3aed; }
-[data-source="Mapillary"] { --source-color: #15803d; }
-[data-source="Google Street View"] { --source-color: #c2410c; }
+.badge-amber { background: #fef3c7; color: #92400e; }
 
 /* Spinner */
 .spinner {
@@ -109,6 +103,76 @@ body {
     display: block;
 }
 
+/* Plan action buttons */
+.plan-actions {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.plan-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    border: 1px solid;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+.plan-action-btn.primary {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+}
+.plan-action-btn.primary:hover {
+    background: #dbeafe;
+}
+.plan-action-btn.secondary {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    color: #4b5563;
+}
+.plan-action-btn.secondary:hover {
+    background: #f3f4f6;
+}
+
+/* Plan inline preview */
+.plan-preview {
+    margin-top: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #f9fafb;
+}
+.plan-preview iframe {
+    width: 100%;
+    height: 400px;
+    border: none;
+}
+.plan-preview img {
+    width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    cursor: pointer;
+}
+.plan-preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #9ca3af;
+    font-size: 0.85rem;
+}
+.plan-preview-placeholder .icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
 /* Image cards */
 .image-card {
     position: relative;
@@ -137,6 +201,36 @@ body {
     font-weight: 600;
     background: rgba(0,0,0,0.6);
     color: white;
+}
+
+/* Google Maps Street View link card */
+.gsv-link-card {
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #93c5fd;
+    transition: border-color 0.2s, background 0.2s;
+}
+.gsv-link-card:hover {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
+}
+.gsv-link-card .gsv-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+.gsv-link-card .gsv-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1d4ed8;
+    text-align: center;
 }
 
 /* Lightbox */
@@ -193,8 +287,216 @@ body {
     font-size: 0.85rem;
 }
 
+/* Document Viewer Modal */
+.doc-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.doc-viewer.hidden { display: none; }
+.doc-viewer-content {
+    background: white;
+    border-radius: 0.75rem;
+    width: 95vw;
+    max-width: 1100px;
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+.doc-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1e293b;
+    direction: rtl;
+}
+.doc-viewer-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.doc-viewer-btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #475569;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+.doc-viewer-btn:hover {
+    background: #f1f5f9;
+}
+.doc-viewer-close-btn {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fecaca;
+    font-size: 1rem;
+    padding: 0.25rem 0.625rem;
+}
+.doc-viewer-close-btn:hover {
+    background: #fecaca;
+}
+.doc-viewer-body {
+    flex: 1;
+    overflow: hidden;
+}
+.doc-viewer-body iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+.doc-viewer-body img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 /* Plan type colours */
 .type-permit { color: #15803d; }
 .type-plan { color: #1d4ed8; }
 .type-completion { color: #7c3aed; }
 .type-other { color: #6b7280; }
+
+/* ─── Smart Address Form ─── */
+.smart-address-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.ac-field {
+    position: relative;
+}
+.ac-city-field { flex: 2; }
+.ac-street-field { flex: 3; }
+.ac-house-field { flex: 1; min-width: 80px; }
+
+.ac-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background: white;
+    transition: border-color 0.15s, background-color 0.15s;
+    box-sizing: border-box;
+}
+.ac-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+.ac-input:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+.ac-input.ac-selected {
+    border-color: #22c55e;
+    background-color: #f0fdf4;
+}
+
+.ac-search-btn {
+    padding: 0.75rem 1.5rem;
+    background: #1d4ed8;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.ac-search-btn:hover { background: #1e40af; }
+.ac-search-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+/* Autocomplete dropdown */
+.ac-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 50;
+    margin-top: 2px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    max-height: 240px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.ac-dropdown.hidden { display: none; }
+
+.ac-option {
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.1s;
+}
+.ac-option:last-child { border-bottom: none; }
+.ac-option:hover,
+.ac-option.ac-active {
+    background: #eff6ff;
+}
+.ac-option .ac-secondary {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-right: 0.5rem;
+}
+.ac-option mark {
+    background: #fef08a;
+    color: inherit;
+    border-radius: 2px;
+    padding: 0;
+}
+
+.ac-empty {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: #9ca3af;
+    text-align: center;
+}
+.ac-loading {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: #9ca3af;
+    text-align: center;
+}
+
+/* Responsive: stack fields on small screens */
+@media (max-width: 640px) {
+    .smart-address-row {
+        flex-direction: column;
+    }
+    .ac-city-field,
+    .ac-street-field,
+    .ac-house-field {
+        flex: none;
+        width: 100%;
+    }
+    .ac-search-btn {
+        width: 100%;
+        padding: 0.875rem;
+    }
+}

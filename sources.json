@@ -9,10 +9,142 @@
   },
   "ירושלים": {
     "sources": ["xplan", "mavat"],
-    "notes": "ArcGIS REST endpoints available"
+    "notes": "National XPLAN coverage"
+  },
+  "חיפה": {
+    "sources": ["xplan", "mavat"],
+    "notes": "Haifa — open data portal available"
+  },
+  "באר שבע": {
+    "sources": ["xplan", "mavat"],
+    "notes": "Beer Sheva Smart City open data"
+  },
+  "ראשון לציון": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "פתח תקווה": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "אשדוד": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "נתניה": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "חולון": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "בני ברק": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "רמת גן": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "בת ים": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "אשקלון": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "הרצליה": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "כפר סבא": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "רעננה": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "הוד השרון": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "מודיעין-מכבים-רעות": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "מודיעין": {
+    "sources": ["xplan", "mavat"],
+    "notes": "Alias for מודיעין-מכבים-רעות"
+  },
+  "רחובות": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "לוד": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "רמלה": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "נצרת": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "עכו": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "טבריה": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "אילת": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "קריית גת": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "קריית ים": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "קריית ביאליק": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "קריית מוצקין": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "קריית אתא": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "נהריה": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "גבעתיים": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "רמת השרון": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
+  },
+  "יבנה": {
+    "sources": ["xplan", "mavat"],
+    "notes": ""
   },
   "_default": {
     "sources": ["xplan", "mavat"],
-    "notes": "National fallback for any city"
+    "notes": "National fallback — XPLAN covers all Israeli cities"
   }
 }

@@ -1,9 +1,9 @@
 """Street-level imagery service.
 
-Layered free sources:
-  1. Mapillary (primary, completely free, needs client token)
-  2. Google Street View Static API (fallback, 10K free/month, needs API key)
-     - metadata check is unlimited & free
+Layered free sources (all work without paid API keys):
+  1. Wikimedia Commons geosearch (primary — completely free, no key needed)
+  2. Mapillary (optional enhancement — free token from mapillary.com/developer)
+  3. Google Maps Street View link (always generated — opens in browser, no API key)
 """
 from __future__ import annotations
 
@@ -21,7 +21,96 @@ _BBOX_OFFSET = 0.0005  # ~55m at Israel's latitude
 
 
 # ---------------------------------------------------------------------------
-# Mapillary
+# Wikimedia Commons — completely free, no API key needed
+# ---------------------------------------------------------------------------
+
+_WIKI_API = "https://commons.wikimedia.org/w/api.php"
+_WIKI_HEADERS = {
+    "User-Agent": "AmitAddress/0.2 (https://github.com/shayke-cohen/IsraelCityPlans; building-plans-finder) httpx/0.27",
+}
+
+
+async def _wikimedia_images(lat: float, lon: float, limit: int = 8) -> list[StreetImage]:
+    """Fetch geotagged photos from Wikimedia Commons near the coordinates."""
+    geo_params = {
+        "action": "query",
+        "list": "geosearch",
+        "gscoord": f"{lat}|{lon}",
+        "gsradius": 500,
+        "gsnamespace": 6,
+        "gsprimary": "all",
+        "gslimit": limit,
+        "format": "json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15, headers=_WIKI_HEADERS) as client:
+            resp = await client.get(_WIKI_API, params=geo_params)
+            resp.raise_for_status()
+            geo_data = resp.json()
+
+            pages = geo_data.get("query", {}).get("geosearch", [])
+            if not pages:
+                return []
+
+            page_ids = "|".join(str(p["pageid"]) for p in pages)
+            info_params = {
+                "action": "query",
+                "pageids": page_ids,
+                "prop": "imageinfo",
+                "iiprop": "url|extmetadata|timestamp|size",
+                "iiurlwidth": 800,
+                "format": "json",
+            }
+
+            resp2 = await client.get(_WIKI_API, params=info_params)
+            resp2.raise_for_status()
+            info_data = resp2.json()
+    except Exception:
+        logger.exception("Wikimedia Commons query failed")
+        return []
+
+    images: list[StreetImage] = []
+    page_map = {p["pageid"]: p for p in pages}
+    for pid_str, page in info_data.get("query", {}).get("pages", {}).items():
+        ii_list = page.get("imageinfo", [])
+        if not ii_list:
+            continue
+        ii = ii_list[0]
+
+        thumb = ii.get("thumburl", "")
+        full = ii.get("url", "")
+        if not thumb and not full:
+            continue
+
+        # Skip SVG/icon files that are not photos
+        mime = ii.get("mime", "")
+        if mime and "svg" in mime:
+            continue
+
+        pid = int(pid_str)
+        geo_info = page_map.get(pid, {})
+
+        date_str = ""
+        ts = ii.get("timestamp", "")
+        if ts:
+            date_str = ts[:10]
+
+        images.append(
+            StreetImage(
+                url=full,
+                thumbnail_url=thumb or full,
+                source="Wikimedia Commons",
+                date=date_str,
+                lat=geo_info.get("lat", lat),
+                lon=geo_info.get("lon", lon),
+            )
+        )
+
+    return images
+
+
+# ---------------------------------------------------------------------------
+# Mapillary (optional — needs free token from mapillary.com/developer)
 # ---------------------------------------------------------------------------
 
 _MAPILLARY_GRAPH = "https://graph.mapillary.com"
@@ -43,12 +132,16 @@ async def _mapillary_images(lat: float, lon: float, limit: int = 5) -> list[Stre
         "limit": limit,
     }
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(url, params=params)
-        if resp.status_code != 200:
-            logger.warning("Mapillary returned %s: %s", resp.status_code, resp.text[:200])
-            return []
-        data = resp.json().get("data", [])
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(url, params=params)
+            if resp.status_code != 200:
+                logger.warning("Mapillary returned %s: %s", resp.status_code, resp.text[:200])
+                return []
+            data = resp.json().get("data", [])
+    except Exception:
+        logger.exception("Mapillary query failed")
+        return []
 
     images: list[StreetImage] = []
     for item in data:
@@ -77,62 +170,21 @@ async def _mapillary_images(lat: float, lon: float, limit: int = 5) -> list[Stre
 
 
 # ---------------------------------------------------------------------------
-# Google Street View Static API
+# Google Maps Street View link (always free — opens in browser)
 # ---------------------------------------------------------------------------
 
-_GSV_META_URL = "https://maps.googleapis.com/maps/api/streetview/metadata"
-_GSV_IMAGE_URL = "https://maps.googleapis.com/maps/api/streetview"
 
-
-async def _google_sv_metadata(lat: float, lon: float) -> dict | None:
-    """Check whether Google has Street View imagery (free & unlimited)."""
-    key = settings.google_streetview_api_key
-    if not key:
-        return None
-
-    params = {"location": f"{lat},{lon}", "key": key}
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(_GSV_META_URL, params=params)
-        if resp.status_code != 200:
-            return None
-        meta = resp.json()
-    if meta.get("status") != "OK":
-        return None
-    return meta
-
-
-async def _google_sv_images(lat: float, lon: float) -> list[StreetImage]:
-    key = settings.google_streetview_api_key
-    if not key:
-        return []
-
-    meta = await _google_sv_metadata(lat, lon)
-    if meta is None:
-        return []
-
-    date_str = meta.get("date", "")
-    images: list[StreetImage] = []
-    for heading in (0, 90, 180, 270):
-        params = {
-            "location": f"{lat},{lon}",
-            "size": "640x640",
-            "heading": heading,
-            "key": key,
-        }
-        qs = "&".join(f"{k}={v}" for k, v in params.items())
-        img_url = f"{_GSV_IMAGE_URL}?{qs}"
-        images.append(
-            StreetImage(
-                url=img_url,
-                thumbnail_url=img_url,
-                source="Google Street View",
-                date=date_str,
-                heading=float(heading),
-                lat=lat,
-                lon=lon,
-            )
-        )
-    return images
+def _google_maps_sv_link(lat: float, lon: float) -> StreetImage:
+    """Generate a clickable Google Maps Street View link (no API key needed)."""
+    sv_url = f"https://www.google.com/maps?layer=c&cbll={lat},{lon}"
+    return StreetImage(
+        url=sv_url,
+        thumbnail_url="",
+        source="Google Maps Street View",
+        date="",
+        lat=lat,
+        lon=lon,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -141,14 +193,21 @@ async def _google_sv_images(lat: float, lon: float) -> list[StreetImage]:
 
 
 async def get_street_images(lat: float, lon: float) -> list[StreetImage]:
-    """Try each imagery source in order, return first non-empty result set."""
-    images = await _mapillary_images(lat, lon)
-    if images:
-        return images
+    """Try each imagery source. Wikimedia is always free (no key needed).
 
-    images = await _google_sv_images(lat, lon)
-    if images:
-        return images
+    Returns a combined list: Mapillary + Wikimedia + Google Maps link fallback.
+    """
+    all_images: list[StreetImage] = []
 
-    logger.info("No street imagery found for %.5f, %.5f", lat, lon)
-    return []
+    mapillary = await _mapillary_images(lat, lon)
+    all_images.extend(mapillary)
+
+    wiki = await _wikimedia_images(lat, lon)
+    all_images.extend(wiki)
+
+    all_images.append(_google_maps_sv_link(lat, lon))
+
+    if len(all_images) <= 1:
+        logger.info("Only Google Maps link available for %.5f, %.5f", lat, lon)
+
+    return all_images
