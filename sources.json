@@ -1,214 +1,214 @@
 {
   "תל אביב-יפו": {
-    "sources": ["tlv_archive", "xplan", "govmap", "mavat"],
-    "notes": "Rich archive with 5.3M documents spanning 1920-2020"
+    "sources": ["tlv_engineering", "meirim", "tlv_archive", "xplan", "mavat_plans"],
+    "notes": "Engineering archive + permits first, then Meirim proximity, TLV area plans, XPLAN, MAVAT plans"
   },
   "תל אביב": {
-    "sources": ["tlv_archive", "xplan", "govmap", "mavat"],
+    "sources": ["tlv_engineering", "meirim", "tlv_archive", "xplan", "mavat_plans"],
     "notes": "Alias for תל אביב-יפו"
   },
   "ירושלים": {
-    "sources": ["xplan", "govmap", "mavat"],
-    "notes": "National XPLAN, GovMap parcels fallback"
+    "sources": ["jerusalem_eng", "meirim", "xplan", "govmap", "mavat_plans"],
+    "notes": "Jerusalem GIS plans first, Meirim proximity, XPLAN, GovMap parcels, MAVAT parcel plans"
   },
   "חיפה": {
-    "sources": ["haifa_data", "xplan", "govmap", "mavat"],
-    "notes": "Haifa open-data zoning + national XPLAN"
+    "sources": ["meirim", "haifa_data", "xplan", "govmap", "mavat_plans"],
+    "notes": "Meirim proximity first, Haifa open-data zoning, XPLAN, GovMap, MAVAT parcel plans"
   },
   "פתח תקווה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "ראשון לציון": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "נתניה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "אשדוד": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "בני ברק": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "באר שבע": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "חולון": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "רמת גן": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "בית שמש": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "אשקלון": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "רחובות": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "בת ים": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "הרצליה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "חדרה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "כפר סבא": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "מודיעין-מכבים-רעות": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "מודיעין": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": "Alias for מודיעין-מכבים-רעות"
   },
   "לוד": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "רמלה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "רעננה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "נצרת": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "ראש העין": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "רהט": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "קריית גת": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "נהריה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "הוד השרון": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "עפולה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "קריית אתא": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "אום אל-פחם": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "גבעתיים": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "יבנה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "אילת": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "עכו": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "נתיבות": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "טבריה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "קריית מוצקין": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "אלעד": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "רמת השרון": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "כרמיאל": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "נס ציונה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "קריית ביאליק": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "טייבה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "נוף הגליל": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": "Formerly Nazareth Illit"
   },
   "שפרעם": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "קריית אונו": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "קריית ים": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "אור יהודה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "דימונה": {
-    "sources": ["xplan", "govmap", "mavat"],
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
     "notes": ""
   },
   "_default": {
-    "sources": ["xplan", "govmap", "mavat"],
-    "notes": "National fallback — XPLAN plans first, GovMap parcels fallback, MAVAT link"
+    "sources": ["meirim", "xplan", "govmap", "mavat_plans"],
+    "notes": "National fallback — Meirim proximity plans first, XPLAN, GovMap parcels, MAVAT parcel plans"
   }
 }

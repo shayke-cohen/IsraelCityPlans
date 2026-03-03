@@ -494,7 +494,13 @@ function renderPlans(plans) {
 
     let actionsHtml = '<div class="plan-actions">';
 
-    if (plan.document_url) {
+    if (plan.embed_type === 'archive' && plan.details && plan.details.tik_binyan) {
+      const tik = plan.details.tik_binyan;
+      const pdfCount = plan.details.pdf_count || 0;
+      actionsHtml += `<button onclick="event.stopPropagation(); loadArchiveDocs('${escAttr(tik)}', this)" class="plan-action-btn primary">📂 הצג מסמכים (${pdfCount})</button>`;
+      actionsHtml += `<a href="${esc(plan.document_url)}" target="_blank" class="plan-action-btn secondary" onclick="event.stopPropagation()">🏛️ פתח אתר ארכיון</a>`;
+      actionsHtml += `<button onclick="event.stopPropagation(); copyTik('${escAttr(tik)}', this)" class="plan-action-btn secondary">📋 העתק מס׳ תיק: ${esc(tik)}</button>`;
+    } else if (plan.document_url) {
       if (plan.embed_type === 'pdf') {
         actionsHtml += `<button onclick="event.stopPropagation(); openDocViewer('${escAttr(plan.document_url)}', '${escAttr(plan.name)}', 'pdf')" class="plan-action-btn primary">📄 צפייה בתוכנית</button>`;
       } else if (plan.embed_type === 'image') {
@@ -506,12 +512,13 @@ function renderPlans(plans) {
       }
     }
 
-    if (plan.source_url && plan.source_url !== plan.document_url) {
-      actionsHtml += `<a href="${esc(plan.source_url)}" target="_blank" class="plan-action-btn secondary" onclick="event.stopPropagation()">🔗 קישור למקור</a>`;
-    }
-
-    if (plan.document_url) {
-      actionsHtml += `<a href="${esc(plan.document_url)}" target="_blank" class="plan-action-btn secondary" onclick="event.stopPropagation()">↗ פתח בחלון חדש</a>`;
+    if (plan.embed_type !== 'archive') {
+      if (plan.source_url && plan.source_url !== plan.document_url) {
+        actionsHtml += `<a href="${esc(plan.source_url)}" target="_blank" class="plan-action-btn secondary" onclick="event.stopPropagation()">🔗 קישור למקור</a>`;
+      }
+      if (plan.document_url) {
+        actionsHtml += `<a href="${esc(plan.document_url)}" target="_blank" class="plan-action-btn secondary" onclick="event.stopPropagation()">↗ פתח בחלון חדש</a>`;
+      }
     }
 
     actionsHtml += '</div>';
@@ -519,6 +526,14 @@ function renderPlans(plans) {
     let previewHtml = '';
     if (plan.embed_type === 'image' && plan.thumbnail_url) {
       previewHtml = `<div class="plan-preview"><img src="${esc(plan.thumbnail_url)}" alt="${esc(plan.name)}" onclick="event.stopPropagation(); openDocViewer('${escAttr(plan.document_url)}', '${escAttr(plan.name)}', 'image')"></div>`;
+    }
+
+    const isArchive = plan.embed_type === 'archive';
+    if (isArchive) card.classList.add('expanded');
+
+    let tikInfoHtml = '';
+    if (isArchive && plan.details && plan.details.tik_binyan) {
+      tikInfoHtml = `<p><strong>מספר תיק:</strong> ${esc(plan.details.tik_binyan)}</p>`;
     }
 
     card.innerHTML = `
@@ -530,6 +545,7 @@ function renderPlans(plans) {
       </div>
       <div class="plan-details">
         <p><strong>סטטוס:</strong> ${esc(plan.status)}</p>
+        ${tikInfoHtml}
         ${plan.date ? `<p><strong>תאריך:</strong> ${esc(plan.date)}</p>` : ''}
         ${actionsHtml}
         ${previewHtml}
@@ -577,6 +593,59 @@ function closeDocViewer() {
   body.innerHTML = '';
   viewer.classList.add('hidden');
   document.body.style.overflow = '';
+}
+
+async function loadArchiveDocs(tik, btn) {
+  const viewer = document.getElementById('doc-viewer');
+  const body = document.getElementById('doc-viewer-body');
+  const titleEl = document.getElementById('doc-viewer-title');
+  const extLink = document.getElementById('doc-viewer-external');
+
+  titleEl.textContent = `תיק בניין ${tik} – מסמכי ארכיון הנדסה`;
+  extLink.href = `https://handasa.tel-aviv.gov.il/Pages/searchResultsAnonPageNew.aspx?folderId=${tik}`;
+
+  body.innerHTML = '<div style="padding:2rem;text-align:center;color:#666">טוען מסמכים...</div>';
+  viewer.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const resp = await fetch(`/api/archive/${encodeURIComponent(tik)}`);
+    if (!resp.ok) throw new Error('לא נמצאו מסמכים');
+    const data = await resp.json();
+    const docs = data.documents || [];
+
+    if (!docs.length) {
+      body.innerHTML = '<div style="padding:2rem;text-align:center">לא נמצאו מסמכים בארכיון</div>';
+      return;
+    }
+
+    let html = `<div class="archive-docs-container">`;
+    html += `<div class="archive-header">`;
+    html += `<p>נמצאו <strong>${docs.length}</strong> מסמכים בתיק בניין <strong>${esc(tik)}</strong></p>`;
+    html += `<p class="archive-note">📌 המסמכים מאוחסנים בארכיון ההנדסה של עיריית ת״א. לצפייה והורדה, יש לפתוח את אתר הארכיון ולאשר את תנאי השימוש.</p>`;
+    html += `<a href="${esc(data.page_url)}" target="_blank" class="archive-open-btn">🏛️ פתח בארכיון ההנדסה</a>`;
+    html += `</div>`;
+    html += `<div class="archive-docs-list">`;
+    docs.forEach((doc, i) => {
+      html += `<div class="archive-doc-item">`;
+      html += `<span class="archive-doc-icon">📄</span>`;
+      html += `<span class="archive-doc-name">מסמך ${i + 1}</span>`;
+      html += `<span class="archive-doc-id">${esc(doc.id)}.pdf</span>`;
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+    body.innerHTML = html;
+  } catch (err) {
+    body.innerHTML = `<div style="padding:2rem;text-align:center;color:#c00">${esc(err.message)}</div>`;
+  }
+}
+
+function copyTik(tik, btn) {
+  navigator.clipboard.writeText(tik).then(() => {
+    showButtonFeedback(btn, '✓ הועתק');
+  }).catch(() => {
+    showButtonFeedback(btn, '✗');
+  });
 }
 
 // ─── Image copy & download ───

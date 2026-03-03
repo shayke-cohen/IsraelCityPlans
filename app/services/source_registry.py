@@ -127,12 +127,16 @@ class CitySourceRegistry:
         street: str = "",
         house_number: str = "",
     ) -> tuple[list[BuildingPlan], list[str]]:
-        """Try each adapter in the chain; return on first success.
+        """Run **all** adapters in the chain and merge results.
 
+        Plans are deduplicated by plan number (or name if no number).
         Returns ``(plans, sources_tried)``.
         """
         chain = self.get_chain(city)
         sources_tried: list[str] = []
+        all_plans: list[BuildingPlan] = []
+        seen_keys: set[str] = set()
+
         for adapter in chain:
             sources_tried.append(adapter.name)
             try:
@@ -151,10 +155,27 @@ class CitySourceRegistry:
                         len(plans),
                         address,
                     )
-                    return plans, sources_tried
+                for p in plans:
+                    num_key = (
+                        p.details.get("plan_number")
+                        or p.details.get("taba_number")
+                        or p.details.get("mavat_number")
+                        or ""
+                    )
+                    name_key = p.name.strip()
+                    if num_key and num_key in seen_keys:
+                        continue
+                    if name_key and name_key in seen_keys:
+                        continue
+                    if num_key:
+                        seen_keys.add(num_key)
+                    if name_key:
+                        seen_keys.add(name_key)
+                    all_plans.append(p)
             except Exception:
                 logger.exception("Adapter %s failed for %s", adapter.name, address)
-        return [], sources_tried
+
+        return all_plans, sources_tried
 
     @property
     def registered_cities(self) -> dict[str, list[str]]:

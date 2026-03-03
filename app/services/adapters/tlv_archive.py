@@ -3,7 +3,12 @@
 Uses the free Tel Aviv GIS open-data SOAP/REST service at
 ``gisn.tel-aviv.gov.il/gisopendata/service.asmx``.
 
+Layer 527 = גושים וחלקות (parcels — gush / helka).
 Layer 528 = תוכניות בניין עיר (City Building Plans / TBW).
+
+Plans are filtered by ``ms_shetach_graphi`` (actual polygon area in m²)
+to exclude massive city-wide / regional plans that aren't specific to the
+queried address.
 """
 from __future__ import annotations
 
@@ -18,8 +23,10 @@ from app.services.source_registry import SourceAdapter, register_adapter
 logger = logging.getLogger(__name__)
 
 _GIS_URL = "https://gisn.tel-aviv.gov.il/gisopendata/service.asmx/GetLayersFromGeo"
+_LAYER_PARCELS = "527"
 _LAYER_PLANS = "528"
 _SEARCH_RADIUS = "50"
+_MAX_GRAPHIC_AREA_M2 = 50_000  # 5 hectares — anything bigger is area/city-wide
 
 _STATUS_PRIORITY = {
     "בתוקף": 0,
@@ -75,6 +82,35 @@ class TLVArchiveAdapter(SourceAdapter):
     def display_name(self) -> str:
         return 'ארכיון הנדסה ת"א'
 
+    async def _resolve_parcel(
+        self, lat: float, lon: float, client: httpx.AsyncClient,
+    ) -> tuple[str, str]:
+        """Return (gush, helka) from TLV GIS layer 527 for the given point."""
+        params = {
+            "layerCodes": _LAYER_PARCELS,
+            "radiuses": "10",
+            "longitude": str(lon),
+            "latitude": str(lat),
+        }
+        try:
+            resp = await client.get(_GIS_URL, params=params)
+            resp.raise_for_status()
+            layers = resp.json()
+        except Exception:
+            logger.debug("TLV parcel lookup failed", exc_info=True)
+            return ("", "")
+
+        for layer in layers:
+            if layer.get("layer") != _LAYER_PARCELS:
+                continue
+            for entry in layer.get("data", []):
+                attrs = entry.get("attributes", {})
+                gush = str(attrs.get("ms_gush") or "").strip()
+                helka = str(attrs.get("ms_chelka") or "").strip()
+                if gush:
+                    return (gush, helka)
+        return ("", "")
+
     async def search(
         self,
         address: str,
@@ -85,21 +121,25 @@ class TLVArchiveAdapter(SourceAdapter):
         street: str = "",
         house_number: str = "",
     ) -> list[BuildingPlan]:
-        params = {
-            "layerCodes": _LAYER_PLANS,
-            "radiuses": _SEARCH_RADIUS,
-            "longitude": str(lon),
-            "latitude": str(lat),
-        }
+        async with httpx.AsyncClient(timeout=20) as client:
+            gush, helka = await self._resolve_parcel(lat, lon, client)
+            if gush:
+                logger.info("TLV parcel resolved: gush=%s helka=%s", gush, helka)
 
-        try:
-            async with httpx.AsyncClient(timeout=20) as client:
+            params = {
+                "layerCodes": _LAYER_PLANS,
+                "radiuses": _SEARCH_RADIUS,
+                "longitude": str(lon),
+                "latitude": str(lat),
+            }
+
+            try:
                 resp = await client.get(_GIS_URL, params=params)
                 resp.raise_for_status()
                 layers = resp.json()
-        except Exception:
-            logger.exception("TLV GIS query failed")
-            return []
+            except Exception:
+                logger.exception("TLV GIS query failed")
+                return []
 
         plans: list[BuildingPlan] = []
         for layer in layers:
@@ -115,6 +155,17 @@ class TLVArchiveAdapter(SourceAdapter):
                 if status in ("תכנית מבוטלת", "תכנית גנוזה", "תכנית הסטורית/ללא זכויות נוכחיות"):
                     continue
 
+                graphic_area = attrs.get("ms_shetach_graphi") or 0
+                try:
+                    graphic_area = float(graphic_area)
+                except (TypeError, ValueError):
+                    graphic_area = 0.0
+
+                if graphic_area <= 0 or graphic_area > _MAX_GRAPHIC_AREA_M2:
+                    continue
+
+                area_dunam = graphic_area / 1000.0
+
                 doc_url = attrs.get("url_documents", "")
                 plan = BuildingPlan(
                     name=name,
@@ -128,13 +179,22 @@ class TLVArchiveAdapter(SourceAdapter):
                     details={
                         "taba_id": attrs.get("id_taba"),
                         "taba_number": (attrs.get("taba") or "").strip(),
-                        "scope": attrs.get("t_hekef", ""),
+                        "scope": (attrs.get("t_hekef") or "").strip(),
                         "classification": attrs.get("t_sivug", ""),
                         "mavat_number": attrs.get("mispar_tochnit_mavat", ""),
+                        "area_dunam": round(area_dunam, 1),
+                        "gush": gush,
+                        "helka": helka,
                     },
                 )
                 plans.append(plan)
 
-        plans.sort(key=lambda p: _STATUS_PRIORITY.get(p.status, 99))
-        logger.info("TLV archive returned %d plans (filtered) for %s", len(plans), address)
+        plans.sort(key=lambda p: (
+            p.details.get("area_dunam", 9999),
+            _STATUS_PRIORITY.get(p.status, 99),
+        ))
+        logger.info(
+            "TLV archive returned %d plans (area < %d m²) for %s",
+            len(plans), _MAX_GRAPHIC_AREA_M2, address,
+        )
         return plans

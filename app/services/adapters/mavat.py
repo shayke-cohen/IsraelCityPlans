@@ -43,12 +43,13 @@ class MAVATAdapter(SourceAdapter):
         )
         return [
             BuildingPlan(
-                name=f"חיפוש במבא\"ת – {address}",
+                name='חיפוש במבא"ת (מאגר תכניות ארצי)',
                 plan_type=PlanType.OTHER,
                 status="קישור לחיפוש ידני",
                 source=self.display_name,
                 source_url=mavat_url,
                 document_url=mavat_url,
-                embed_type="iframe",
+                embed_type="link",
+                details={"is_fallback": True},
             )
         ]

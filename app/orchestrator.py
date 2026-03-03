@@ -23,26 +23,76 @@ logger = logging.getLogger(__name__)
 
 
 _STREET_PREFIXES = {"רחוב", "שדרות", "דרך", "סמטת", "שד'"}
+_MAX_RESULTS = 15
 
 
-def _filter_plans_by_address(
+def _relevance_score(
+    plan: BuildingPlan,
+    street_words: list[str],
+    house_number: str,
+) -> float:
+    """Score a plan's relevance to a specific address (higher = better)."""
+    if plan.details.get("is_fallback"):
+        return -10.0
+
+    score = 0.0
+
+    if plan.details.get("tik_binyan"):
+        score += 5
+    if plan.details.get("pdf_count", 0) > 0:
+        score += 5
+    if plan.details.get("address_match"):
+        score += 4
+
+    name = plan.name
+
+    if house_number and house_number in name:
+        score += 3
+    if street_words and any(w in name for w in street_words):
+        score += 2
+
+    distance = plan.details.get("distance_m")
+    if isinstance(distance, (int, float)):
+        if distance <= 50:
+            score += 4
+        elif distance <= 100:
+            score += 3
+        elif distance <= 200:
+            score += 2
+
+    area = plan.details.get("area_dunam", 0)
+    if isinstance(area, (int, float)) and area > 0:
+        if area <= 5:
+            score += 3
+        elif area <= 50:
+            score += 2
+        elif area <= 200:
+            score += 1
+
+    if plan.status == "בתוקף":
+        score += 1
+    elif plan.status in ("הפקדה", "אישור"):
+        score += 0.5
+
+    return score
+
+
+def _rank_and_cap(
     plans: list[BuildingPlan],
     street: str,
     house_number: str,
 ) -> list[BuildingPlan]:
-    """Keep only plans whose name mentions the searched street."""
-    if not street:
-        return plans
+    """Score, sort, and cap plans to the most relevant ones."""
+    words = [w for w in street.split() if w not in _STREET_PREFIXES and len(w) > 1] if street else []
 
-    words = [w for w in street.split() if w not in _STREET_PREFIXES and len(w) > 1]
-    if not words:
-        return plans
+    scored = [
+        (_relevance_score(p, words, house_number), idx, p)
+        for idx, p in enumerate(plans)
+    ]
+    scored.sort(key=lambda t: (-t[0], t[1]))
 
-    matched = [p for p in plans if any(w in p.name for w in words)]
-
-    # Fallback: if no plan name mentions the street, return all
-    # so the user still sees something rather than empty results.
-    return matched if matched else plans
+    result = [p for _, _, p in scored[:_MAX_RESULTS]]
+    return result
 
 
 class SearchOrchestrator:
@@ -98,8 +148,8 @@ class SearchOrchestrator:
         if plans_task:
             plans, sources_tried = await plans_task
 
-        if plans and geo.street:
-            plans = _filter_plans_by_address(plans, geo.street, geo.house_number)
+        if plans:
+            plans = _rank_and_cap(plans, geo.street, geo.house_number)
 
         images = []
         if images_task:

@@ -1,18 +1,28 @@
 """XPLAN national building plans adapter.
 
 Queries the Israel Planning Administration's ArcGIS endpoint at
-``ags.iplan.gov.il`` for approved building plans (Layer 1 = "קוים כחולים").
-Works for any address in Israel, not just Tel Aviv.
+``ags.iplan.gov.il`` for approved building plans (Layer 1 = "קוים כחולים",
+Layer 0 = plans).
+
+Improvements over the original:
+- Queries layers in parallel for faster response
+- Tighter area filter (50 dunam instead of 100)
+- Street name matching on plan names boosts relevance
+- Uses a tight bounding box envelope instead of point-in-polygon
+  (more tolerant of EPSG issues and faster)
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import re
 import ssl
 from datetime import datetime, timezone
 
 import httpx
 
 from app.models.schemas import BuildingPlan, PlanType
+from app.services.coord_utils import wgs84_bbox
 from app.services.source_registry import SourceAdapter, register_adapter
 
 logger = logging.getLogger(__name__)
@@ -22,11 +32,15 @@ _XPLAN_QUERY_URL = (
     "PlanningPublic/Xplan/MapServer/{layer}/query"
 )
 _PLAN_LAYERS = [1, 0]
+_MAX_AREA_DUNAM = 50
+_BBOX_RADIUS_M = 60
 
 _SSL_CTX = ssl.create_default_context()
 _SSL_CTX.set_ciphers("DEFAULT@SECLEVEL=1")
 _SSL_CTX.check_hostname = False
 _SSL_CTX.verify_mode = ssl.CERT_NONE
+
+_STREET_PREFIXES = ("רחוב ", "שדרות ", "דרך ", "סמטת ", "שד' ")
 
 
 def _epoch_to_date(ms: int | None) -> str:
@@ -52,11 +66,42 @@ def _mavat_url(pl_number: str) -> str:
     return f"https://mavat.iplan.gov.il/SV4/1/{pl_number}"
 
 
-def _mavat_docs_url(pl_number: str) -> str:
-    """Link to the MAVAT documents tab for this plan."""
-    if not pl_number:
-        return ""
-    return f"https://mavat.iplan.gov.il/SV4/1/{pl_number}#documents"
+def _street_matches(plan_name: str, street: str) -> bool:
+    """Check if the plan name contains the street name."""
+    if not street or not plan_name:
+        return False
+    street_clean = street.strip()
+    for prefix in _STREET_PREFIXES:
+        street_clean = street_clean.removeprefix(prefix)
+    return len(street_clean) >= 2 and street_clean in plan_name
+
+
+async def _query_layer(
+    client: httpx.AsyncClient,
+    layer_id: int,
+    lat: float,
+    lon: float,
+) -> list[dict]:
+    url = _XPLAN_QUERY_URL.format(layer=layer_id)
+    bbox = wgs84_bbox(lat, lon, radius_m=_BBOX_RADIUS_M)
+    min_lon, min_lat, max_lon, max_lat = bbox.split(",")
+    params = {
+        "geometry": f"{min_lon},{min_lat},{max_lon},{max_lat}",
+        "geometryType": "esriGeometryEnvelope",
+        "inSR": "4326",
+        "spatialRel": "esriSpatialRelIntersects",
+        "outFields": "*",
+        "returnGeometry": "false",
+        "f": "json",
+    }
+    try:
+        resp = await client.get(url, params=params, follow_redirects=True)
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("features", [])
+    except Exception:
+        logger.exception("XPLAN layer %d query failed", layer_id)
+        return []
 
 
 @register_adapter
@@ -82,37 +127,33 @@ class XPLANAdapter(SourceAdapter):
         all_plans: list[BuildingPlan] = []
         seen_numbers: set[str] = set()
 
-        for layer_id in _PLAN_LAYERS:
-            url = _XPLAN_QUERY_URL.format(layer=layer_id)
-            params = {
-                "geometry": f"{lon},{lat}",
-                "geometryType": "esriGeometryPoint",
-                "inSR": "4326",
-                "spatialRel": "esriSpatialRelIntersects",
-                "outFields": "*",
-                "returnGeometry": "false",
-                "f": "json",
-            }
+        async with httpx.AsyncClient(timeout=25, verify=_SSL_CTX) as client:
+            tasks = [
+                asyncio.create_task(_query_layer(client, lid, lat, lon))
+                for lid in _PLAN_LAYERS
+            ]
+            results = await asyncio.gather(*tasks)
 
-            try:
-                async with httpx.AsyncClient(timeout=20, verify=_SSL_CTX) as client:
-                    resp = await client.get(url, params=params, follow_redirects=True)
-                    resp.raise_for_status()
-                    data = resp.json()
-            except Exception:
-                logger.exception("XPLAN layer %d query failed", layer_id)
-                continue
-
-            for feature in data.get("features", []):
+        for features in results:
+            for feature in features:
                 attrs = feature.get("attributes", {})
                 plan_name = (attrs.get("pl_name") or "").strip()
                 plan_number = (attrs.get("pl_number") or "").strip()
                 if not plan_name or plan_number in seen_numbers:
                     continue
-                seen_numbers.add(plan_number)
 
+                area_dunam = 0.0
+                try:
+                    area_dunam = float(attrs.get("pl_area_dunam") or 0)
+                except (TypeError, ValueError):
+                    pass
+                if area_dunam > _MAX_AREA_DUNAM:
+                    continue
+
+                seen_numbers.add(plan_number)
                 status = (attrs.get("station_desc") or "").strip()
                 mavat_link = _mavat_url(plan_number)
+                street_match = _street_matches(plan_name, street)
 
                 all_plans.append(
                     BuildingPlan(
@@ -123,13 +164,27 @@ class XPLANAdapter(SourceAdapter):
                         source=self.display_name,
                         source_url=mavat_link,
                         document_url=mavat_link,
-                        embed_type="iframe",
+                        embed_type="link",
                         details={
                             "plan_number": plan_number,
                             "mavat_code": attrs.get("mavat_code", ""),
+                            "area_dunam": round(area_dunam, 1),
+                            "address_match": street_match,
                         },
                     )
                 )
 
-        logger.info("XPLAN returned %d plans for %s", len(all_plans), address)
+        all_plans.sort(
+            key=lambda p: (
+                0 if p.details.get("address_match") else 1,
+                p.details.get("area_dunam", 0),
+            )
+        )
+        logger.info(
+            "XPLAN returned %d plans (street_match=%d, area < %d dunam) for %s",
+            len(all_plans),
+            sum(1 for p in all_plans if p.details.get("address_match")),
+            _MAX_AREA_DUNAM,
+            address,
+        )
         return all_plans

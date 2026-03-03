@@ -1,0 +1,113 @@
+[
+  {
+    "city": "Jerusalem",
+    "address": "יפו 97, ירושלים",
+    "geocode": {
+      "city": "ירושלים",
+      "street": "יפו",
+      "house_number": "97"
+    },
+    "total_plans": 21,
+    "per_source": {
+      "מעירים (תוכניות קרובות)": 19,
+      "GovMap (חלקות קדסטר)": 1,
+      "מבא\"ת (מידע תכנוני)": 1
+    },
+    "sources_tried": [
+      "meirim",
+      "xplan",
+      "govmap",
+      "mavat"
+    ],
+    "elapsed_s": 1.45
+  },
+  {
+    "city": "Haifa",
+    "address": "הרצל 1, חיפה",
+    "geocode": {
+      "city": "זכרון יעקב",
+      "street": "הרצל",
+      "house_number": "1"
+    },
+    "total_plans": 27,
+    "per_source": {
+      "מעירים (תוכניות קרובות)": 12,
+      "GovMap (חלקות קדסטר)": 14,
+      "מבא\"ת (מידע תכנוני)": 1
+    },
+    "sources_tried": [
+      "meirim",
+      "xplan",
+      "govmap",
+      "mavat"
+    ],
+    "elapsed_s": 20.83
+  },
+  {
+    "city": "Beer Sheva",
+    "address": "רגר 25, באר שבע",
+    "geocode": {
+      "city": "באר שבע",
+      "street": "שדרות יצחק רגר",
+      "house_number": ""
+    },
+    "total_plans": 10,
+    "per_source": {
+      "מעירים (תוכניות קרובות)": 3,
+      "XPLAN (תכניות ארציות)": 2,
+      "GovMap (חלקות קדסטר)": 4,
+      "מבא\"ת (מידע תכנוני)": 1
+    },
+    "sources_tried": [
+      "meirim",
+      "xplan",
+      "govmap",
+      "mavat"
+    ],
+    "elapsed_s": 1.5
+  },
+  {
+    "city": "Rishon LeZion",
+    "address": "הרצל 50, ראשון לציון",
+    "geocode": {
+      "city": "ראשון לציון",
+      "street": "הרצל",
+      "house_number": "50"
+    },
+    "total_plans": 30,
+    "per_source": {
+      "מעירים (תוכניות קרובות)": 5,
+      "XPLAN (תכניות ארציות)": 4,
+      "GovMap (חלקות קדסטר)": 20,
+      "מבא\"ת (מידע תכנוני)": 1
+    },
+    "sources_tried": [
+      "meirim",
+      "xplan",
+      "govmap",
+      "mavat"
+    ],
+    "elapsed_s": 28.29
+  },
+  {
+    "city": "Petah Tikva",
+    "address": "רוטשילד 10, פתח תקווה",
+    "geocode": {
+      "city": "פתח תקווה",
+      "street": "רוטשילד",
+      "house_number": ""
+    },
+    "total_plans": 21,
+    "per_source": {
+      "GovMap (חלקות קדסטר)": 20,
+      "מבא\"ת (מידע תכנוני)": 1
+    },
+    "sources_tried": [
+      "meirim",
+      "xplan",
+      "govmap",
+      "mavat"
+    ],
+    "elapsed_s": 21.97
+  }
+]

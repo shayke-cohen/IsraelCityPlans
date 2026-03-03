@@ -1,7 +1,7 @@
 """Search API endpoint."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Path, Query, Request
 from fastapi.responses import Response
 
 from app.models.schemas import SearchResult
@@ -61,6 +61,21 @@ async def streetview_download(
             "Cache-Control": "public, max-age=86400",
         },
     )
+
+
+@router.get("/archive/{tik}")
+async def archive_documents(
+    tik: str = Path(..., min_length=4, max_length=12,
+                     description="Building file ID (tik binyan)"),
+) -> dict:
+    """Return the list of PDF documents in a Tel-Aviv engineering archive folder."""
+    from app.services.adapters.tlv_engineering import fetch_archive_documents
+
+    result = await fetch_archive_documents(tik)
+    if not result["documents"]:
+        raise HTTPException(status_code=404,
+                            detail="לא נמצאו מסמכים בארכיון עבור תיק זה")
+    return result
 
 
 @router.get("/sources")
