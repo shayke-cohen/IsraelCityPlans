@@ -1,0 +1,44 @@
+"""FastAPI application entry point."""
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from app.orchestrator import SearchOrchestrator
+from app.routers.search import router as search_router
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    orch = SearchOrchestrator()
+    await orch.startup()
+    app.state.orchestrator = orch
+    yield
+    await orch.shutdown()
+
+
+app = FastAPI(
+    title="Israel Building Plans Finder",
+    description="Search Israeli building plans and street images by address",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.include_router(search_router)
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.get("/")
+async def root():
+    index = STATIC_DIR / "index.html"
+    if index.exists():
+        return FileResponse(str(index))
+    return {"message": "Israel Building Plans Finder API", "docs": "/docs"}

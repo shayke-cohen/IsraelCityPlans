@@ -1,0 +1,18 @@
+{
+  "תל אביב-יפו": {
+    "sources": ["tlv_archive", "xplan", "mavat"],
+    "notes": "Rich archive with 5.3M documents spanning 1920-2020"
+  },
+  "תל אביב": {
+    "sources": ["tlv_archive", "xplan", "mavat"],
+    "notes": "Alias for תל אביב-יפו"
+  },
+  "ירושלים": {
+    "sources": ["xplan", "mavat"],
+    "notes": "ArcGIS REST endpoints available"
+  },
+  "_default": {
+    "sources": ["xplan", "mavat"],
+    "notes": "National fallback for any city"
+  }
+}
