@@ -1,8 +1,8 @@
 """Capture Google Maps Street View screenshots using Playwright.
 
-Provides actual street-level photos for any coordinate without needing
-a Google API key.  Uses a persistent browser instance to avoid cold-start
-overhead on every request.
+Uses the ``map_action=pano`` URL format which reliably enters Street View
+mode in headless Chromium (unlike the ``@lat,lon,3a`` format which Google
+redirects away from).  WebGL flags are required for tile rendering.
 
 Screenshots are saved to ``app/captures/`` and served as static files.
 """
@@ -20,70 +20,20 @@ logger = logging.getLogger(__name__)
 CAPTURES_DIR = Path(__file__).resolve().parent.parent / "captures"
 CAPTURES_DIR.mkdir(exist_ok=True)
 
-_HEADINGS = [0, 90, 180, 270]
-_VIEWPORT = {"width": 1000, "height": 700}
+_HEADINGS = [0, 120, 240]
+_VIEWPORT = {"width": 1200, "height": 800}
+_CLIP = {"x": 0, "y": 70, "width": 1200, "height": 640}
 _TIMEOUT_MS = 25_000
+_TILE_WAIT_MS = 8_000
 
 _browser: Browser | None = None
 _context: BrowserContext | None = None
 _pw = None
 _lock = asyncio.Lock()
 
-_HIDE_UI_CSS = """
-/* Hide all Google Maps UI overlays, keep only the panorama canvas */
-.app-viewcard-strip,
-.scene-footer,
-.widget-minimap,
-#omnibox,
-#watermark,
-.app-horizontal-widget-holder,
-.scene-header,
-#titlecard,
-.widget-scene-cardless,
-.noprint,
-.app-bottom-content-anchor,
-.widget-scene,
-.scene-action-bar,
-.scene-description,
-.widget-pane,
-.id-content-container,
-div[class*="watermark"],
-div[class*="controls"],
-div[class*="titlecard"],
-a[href*="maps.google.com/maps"],
-.scene-overlay,
-button[jsaction],
-div.widget-zoom,
-div.widget-compass,
-div.gm-iv-address,
-div.gm-iv-container > div:not(canvas),
-div[class*="report"],
-.widget-imagery-attribution,
-div[role="dialog"],
-div.consent-bump,
-div.gm-style > div > div:not(:first-child),
-div.app-bottom-content-anchor,
-div.scene-footer-container {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-}
-
-/* Make the panorama canvas fill the viewport */
-#scene_canvas,
-canvas.widget-scene-canvas {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 99999 !important;
-}
-"""
-
 
 async def _ensure_browser() -> BrowserContext:
-    """Launch (or reuse) a headless Chromium browser."""
+    """Launch (or reuse) a headless Chromium with WebGL enabled."""
     global _browser, _context, _pw
     if _context is not None:
         return _context
@@ -92,14 +42,23 @@ async def _ensure_browser() -> BrowserContext:
         if _context is not None:
             return _context
         _pw = await async_playwright().start()
-        _browser = await _pw.chromium.launch(headless=True)
+        _browser = await _pw.chromium.launch(
+            headless=True,
+            args=[
+                "--use-gl=angle",
+                "--use-angle=swiftshader-webgl",
+                "--enable-webgl",
+                "--ignore-gpu-blocklist",
+            ],
+        )
         _context = await _browser.new_context(
             viewport=_VIEWPORT,
             locale="en-US",
             timezone_id="Asia/Jerusalem",
             user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/131.0.0.0 Safari/537.36"
             ),
         )
         return _context
@@ -126,7 +85,7 @@ def _cache_path(lat: float, lon: float, heading: int) -> Path:
 
 
 async def _dismiss_consent(page) -> None:
-    """Click through Google's cookie/consent dialog if it appears."""
+    """Click through Google's cookie/consent dialog if present."""
     for selector in [
         'button:has-text("Accept all")',
         'button:has-text("Reject all")',
@@ -137,39 +96,24 @@ async def _dismiss_consent(page) -> None:
             btn = page.locator(selector).first
             if await btn.is_visible(timeout=2000):
                 await btn.click()
-                await page.wait_for_timeout(1000)
+                await page.wait_for_timeout(800)
                 return
         except Exception:
             continue
 
 
-async def _inject_hide_css(page) -> None:
-    """Inject CSS to hide all Maps UI and maximize the panorama canvas."""
-    await page.add_style_tag(content=_HIDE_UI_CSS)
+def _sv_url(lat: float, lon: float, heading: int) -> str:
+    """Build a Google Maps URL that reliably opens Street View."""
+    return (
+        f"https://www.google.com/maps/@?api=1"
+        f"&map_action=pano&viewpoint={lat},{lon}&heading={heading}"
+    )
 
 
-async def _has_streetview_coverage(page) -> bool:
-    """Return False if Google shows a 'no imagery' message."""
-    for text in [
-        "Sorry, we have no imagery here",
-        "no imagery here",
-        "אין לנו תמונות במיקום הזה",
-    ]:
-        try:
-            loc = page.get_by_text(text, exact=False)
-            if await loc.count() > 0:
-                return False
-        except Exception:
-            continue
-
-    try:
-        canvas = page.locator("canvas")
-        if await canvas.count() == 0:
-            return False
-    except Exception:
-        return False
-
-    return True
+async def _is_streetview_loaded(page) -> bool:
+    """Check that we actually entered Street View (URL contains '3a')."""
+    url = page.url
+    return "3a" in url
 
 
 async def capture_streetview(
@@ -180,28 +124,27 @@ async def capture_streetview(
     """Capture Street View screenshots for given coordinates.
 
     Returns a list of dicts with keys: ``path``, ``heading``, ``url_path``,
-    ``available`` (False if Street View had no coverage).
+    ``available`` (False if no coverage).
     """
     if headings is None:
         headings = _HEADINGS
 
+    # Check cache
     results: list[dict] = []
-    cached_all = True
+    all_cached = True
     for h in headings:
         p = _cache_path(lat, lon, h)
         if p.exists() and p.stat().st_size > 5000:
             results.append({
-                "path": p,
-                "heading": h,
-                "url_path": f"/captures/{p.name}",
-                "available": True,
+                "path": p, "heading": h,
+                "url_path": f"/captures/{p.name}", "available": True,
             })
         else:
-            cached_all = False
+            all_cached = False
             break
 
-    if cached_all and results:
-        logger.info("All %d street view captures cached for %.5f,%.5f", len(results), lat, lon)
+    if all_cached and results:
+        logger.info("All %d captures cached for %.5f,%.5f", len(results), lat, lon)
         return results
 
     results.clear()
@@ -212,65 +155,55 @@ async def capture_streetview(
         return []
 
     page = await ctx.new_page()
+    consent_handled = False
     try:
-        first_nav = True
         for heading in headings:
             out = _cache_path(lat, lon, heading)
             if out.exists() and out.stat().st_size > 5000:
                 results.append({
-                    "path": out,
-                    "heading": heading,
-                    "url_path": f"/captures/{out.name}",
-                    "available": True,
+                    "path": out, "heading": heading,
+                    "url_path": f"/captures/{out.name}", "available": True,
                 })
                 continue
 
-            sv_url = (
-                f"https://www.google.com/maps/@{lat},{lon},3a,90y,"
-                f"{heading}h,90t/data=!3m1!1e3"
-            )
-
             try:
-                await page.goto(sv_url, wait_until="domcontentloaded", timeout=_TIMEOUT_MS)
+                await page.goto(
+                    _sv_url(lat, lon, heading),
+                    wait_until="domcontentloaded",
+                    timeout=_TIMEOUT_MS,
+                )
 
-                if first_nav:
+                if not consent_handled:
                     await _dismiss_consent(page)
-                    first_nav = False
+                    consent_handled = True
 
-                await _inject_hide_css(page)
+                await page.wait_for_timeout(_TILE_WAIT_MS)
 
-                # Wait for the panorama canvas to render
-                try:
-                    await page.locator("canvas").first.wait_for(state="visible", timeout=10_000)
-                except Exception:
-                    pass
-
-                # Let the panorama tiles finish loading
-                await page.wait_for_timeout(3500)
-
-                # Re-inject CSS (Google may re-render UI after tiles load)
-                await _inject_hide_css(page)
-                await page.wait_for_timeout(500)
-
-                if not await _has_streetview_coverage(page):
-                    logger.info("No Street View coverage at %.5f,%.5f", lat, lon)
+                if not await _is_streetview_loaded(page):
+                    logger.info("No Street View at %.5f,%.5f", lat, lon)
                     results.append({
                         "path": None, "heading": heading,
                         "url_path": "", "available": False,
                     })
                     break
 
-                await page.screenshot(path=str(out), type="jpeg", quality=85)
-                logger.info("Captured street view: %s (%d bytes)", out.name, out.stat().st_size)
-
+                await page.screenshot(
+                    path=str(out), type="jpeg", quality=88,
+                    clip=_CLIP,
+                )
+                logger.info(
+                    "Captured street view: %s (%d bytes)",
+                    out.name, out.stat().st_size,
+                )
                 results.append({
-                    "path": out,
-                    "heading": heading,
-                    "url_path": f"/captures/{out.name}",
-                    "available": True,
+                    "path": out, "heading": heading,
+                    "url_path": f"/captures/{out.name}", "available": True,
                 })
             except Exception:
-                logger.exception("Failed to capture heading=%d at %.5f,%.5f", heading, lat, lon)
+                logger.exception(
+                    "Failed to capture heading=%d at %.5f,%.5f",
+                    heading, lat, lon,
+                )
                 results.append({
                     "path": None, "heading": heading,
                     "url_path": "", "available": False,

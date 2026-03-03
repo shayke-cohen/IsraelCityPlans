@@ -165,7 +165,6 @@ async def get_street_images(lat: float, lon: float) -> list[StreetImage]:
         gsv = await _google_streetview_images(lat, lon)
         all_images.extend(gsv)
 
-    if not all_images:
-        all_images.append(_google_maps_sv_link(lat, lon))
+    all_images.append(_google_maps_sv_link(lat, lon))
 
     return all_images

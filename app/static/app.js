@@ -24,8 +24,7 @@ const SOURCE_BADGES = {
   'ארכיון הנדסה ת"א': 'badge-teal',
   'XPLAN (תכניות ארציות)': 'badge-indigo',
   'מבא"ת (מידע תכנוני)': 'badge-purple',
-  'Mapillary': 'badge-green',
-  'Wikimedia Commons': 'badge-amber',
+  'Google Street View': 'badge-green',
   'Google Maps Street View': 'badge-orange',
 };
 
