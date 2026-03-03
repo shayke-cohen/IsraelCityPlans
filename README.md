@@ -8,7 +8,8 @@ Search for building plans (היתרי בנייה, תוכניות בניין עי
   - Tel Aviv: engineering archive (5.3M+ documents) via GIS open-data API
   - Jerusalem + all other cities: XPLAN national planning database
   - MAVAT fallback with deep-link to interactive viewer
-- **Street-level images** from Mapillary (free) and Google Street View (optional)
+- **Street-level images** from Wikimedia Commons (free), Mapillary (free), and Google Street View (optional)
+- **Copy & download** any street image directly from the UI (clipboard or file save)
 - **Dual interface**: Web UI (Hebrew RTL) + CLI with Rich tables
 - **SQLite cache** with TTL-based expiry
 - **All free APIs** — no paid services required
@@ -58,6 +59,8 @@ python cli.py cache clear
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/search?q=...` | GET | Search by address |
+| `/api/streetview/image?lat=&lon=&heading=` | GET | Proxy Street View image (hides API key) |
+| `/api/streetview/download?lat=&lon=&heading=` | GET | Download Street View image as file |
 | `/api/sources` | GET | List registered city sources |
 | `/api/cache/stats` | GET | Cache statistics |
 | `/api/cache` | DELETE | Clear cache |
@@ -95,8 +98,9 @@ python cli.py cache clear
 | XPLAN | All of Israel | ArcGIS REST | Free |
 | MAVAT | All of Israel | Web link | Free |
 | Nominatim | Global | REST | Free |
-| Mapillary | Global | REST | Free |
-| Google Street View | Global | REST | Free (10K/mo) |
+| Wikimedia Commons | Global | REST | Free (no key) |
+| Mapillary | Global | REST | Free (token) |
+| Google Street View | Global | REST | Free (10K/mo, key) |
 
 ## Project Structure
 
@@ -113,7 +117,7 @@ python cli.py cache clear
 │   │   └── search.py         # API endpoints
 │   ├── services/
 │   │   ├── geocoder.py       # Nominatim geocoding
-│   │   ├── street_imagery.py # Mapillary + Google SV
+│   │   ├── street_imagery.py # Wikimedia + Mapillary + Google SV
 │   │   ├── source_registry.py # Adapter base + registry
 │   │   └── adapters/
 │   │       ├── tlv_archive.py  # Tel Aviv GIS

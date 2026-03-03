@@ -392,7 +392,7 @@ function renderResults(data) {
   renderPlans(data.plans);
 
   const mapFrame = document.getElementById('map-iframe');
-  mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${geo.lon - 0.003},${geo.lat - 0.002},${geo.lon + 0.003},${geo.lat + 0.002}&layer=mapnik&marker=${geo.lat},${geo.lon}`;
+  mapFrame.src = `https://maps.google.com/maps?q=${geo.lat},${geo.lon}&z=17&output=embed`;
 
   document.getElementById('sources-tried').textContent = data.sources_tried.join(', ');
 }
@@ -422,7 +422,6 @@ function renderImages(images) {
   photoImages.forEach((img, i) => {
     const card = document.createElement('div');
     card.className = 'image-card';
-    card.onclick = () => openLightbox(i);
 
     const imgEl = document.createElement('img');
     imgEl.src = img.thumbnail_url;
@@ -431,12 +430,25 @@ function renderImages(images) {
     imgEl.onerror = function() {
       this.parentElement.style.display = 'none';
     };
+    imgEl.onclick = () => openLightbox(i);
     card.appendChild(imgEl);
 
     const badge = document.createElement('div');
     badge.className = 'image-badge';
     badge.textContent = `${img.source}${img.date ? ' · ' + img.date : ''}`;
     card.appendChild(badge);
+
+    const actions = document.createElement('div');
+    actions.className = 'image-actions';
+    actions.innerHTML = `
+      <button onclick="event.stopPropagation(); copyImage('${escAttr(img.url || img.thumbnail_url)}', this)" title="העתק תמונה">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+      <button onclick="event.stopPropagation(); downloadImage('${escAttr(img.url || img.thumbnail_url)}', '${escAttr(img.source)}')" title="הורד תמונה">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    `;
+    card.appendChild(actions);
 
     grid.appendChild(card);
   });
@@ -568,6 +580,70 @@ function closeDocViewer() {
   document.body.style.overflow = '';
 }
 
+// ─── Image copy & download ───
+async function copyImage(url, btn) {
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const pngBlob = await convertToPng(blob);
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': pngBlob })
+    ]);
+    showButtonFeedback(btn, '✓');
+  } catch (err) {
+    try {
+      await navigator.clipboard.writeText(new URL(url, window.location.origin).href);
+      showButtonFeedback(btn, '✓ URL');
+    } catch (_) {
+      showButtonFeedback(btn, '✗');
+    }
+  }
+}
+
+function convertToPng(blob) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      canvas.toBlob((pngBlob) => resolve(pngBlob), 'image/png');
+      URL.revokeObjectURL(img.src);
+    };
+    img.crossOrigin = 'anonymous';
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
+async function downloadImage(url, source) {
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const ext = blob.type.includes('png') ? 'png' : 'jpg';
+    const filename = `${source.replace(/\s+/g, '_')}_${Date.now()}.${ext}`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  } catch (_) {
+    window.open(url, '_blank');
+  }
+}
+
+function showButtonFeedback(btn, text) {
+  const original = btn.innerHTML;
+  btn.textContent = text;
+  btn.classList.add('feedback');
+  setTimeout(() => {
+    btn.innerHTML = original;
+    btn.classList.remove('feedback');
+  }, 1500);
+}
+
 // ─── Lightbox ───
 function openLightbox(index) {
   if (!currentImages.length) return;
@@ -593,8 +669,15 @@ function updateLightbox() {
   if (!img) return;
   const lbImg = document.getElementById('lb-image');
   lbImg.src = img.url || img.thumbnail_url;
-  document.getElementById('lb-info').textContent =
-    `${img.source} | ${img.date || ''} | ${lightboxIndex + 1}/${currentImages.length}`;
+  const imgUrl = img.url || img.thumbnail_url;
+  document.getElementById('lb-info').innerHTML =
+    `${esc(img.source)} | ${esc(img.date || '')} | ${lightboxIndex + 1}/${currentImages.length}` +
+    `<span class="lb-actions">` +
+    `<button onclick="copyImage('${escAttr(imgUrl)}', this)" class="lb-action-btn" title="העתק">` +
+    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> העתק</button>` +
+    `<button onclick="downloadImage('${escAttr(imgUrl)}', '${escAttr(img.source)}')" class="lb-action-btn" title="הורד">` +
+    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> הורד</button>` +
+    `</span>`;
 }
 
 // Keyboard navigation

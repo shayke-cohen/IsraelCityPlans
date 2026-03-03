@@ -9,7 +9,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.orchestrator import SearchOrchestrator
+from app.routers.address import router as address_router
 from app.routers.search import router as search_router
+from app.services.address_data import AddressDataService
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -19,6 +21,7 @@ async def lifespan(app: FastAPI):
     orch = SearchOrchestrator()
     await orch.startup()
     app.state.orchestrator = orch
+    app.state.address_data = AddressDataService()
     yield
     await orch.shutdown()
 
@@ -31,6 +34,7 @@ app = FastAPI(
 )
 
 app.include_router(search_router)
+app.include_router(address_router)
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

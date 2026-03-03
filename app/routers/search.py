@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import Response
 
 from app.models.schemas import SearchResult
+from app.services.street_imagery import fetch_streetview_bytes
 
 router = APIRouter(prefix="/api", tags=["search"])
 
@@ -20,6 +22,45 @@ async def search(
     if result.error:
         raise HTTPException(status_code=404, detail=result.error)
     return result
+
+
+@router.get("/streetview/image")
+async def streetview_image(
+    lat: float = Query(...),
+    lon: float = Query(...),
+    heading: int = Query(0, ge=0, le=360),
+    size: str = Query("640x480"),
+) -> Response:
+    """Proxy Google Street View Static API images (hides API key from frontend)."""
+    data = await fetch_streetview_bytes(lat, lon, heading, size)
+    if not data:
+        raise HTTPException(status_code=404, detail="Street View image not available")
+    return Response(
+        content=data,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@router.get("/streetview/download")
+async def streetview_download(
+    lat: float = Query(...),
+    lon: float = Query(...),
+    heading: int = Query(0, ge=0, le=360),
+) -> Response:
+    """Download a Street View image with a descriptive filename."""
+    data = await fetch_streetview_bytes(lat, lon, heading, "640x480")
+    if not data:
+        raise HTTPException(status_code=404, detail="Street View image not available")
+    filename = f"streetview_{lat:.5f}_{lon:.5f}_{heading}.jpg"
+    return Response(
+        content=data,
+        media_type="image/jpeg",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "public, max-age=86400",
+        },
+    )
 
 
 @router.get("/sources")

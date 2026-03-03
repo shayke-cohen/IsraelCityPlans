@@ -203,6 +203,46 @@ body {
     color: white;
 }
 
+/* Image action buttons (copy/download overlay) */
+.image-actions {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 2;
+}
+.image-card:hover .image-actions {
+    opacity: 1;
+}
+.image-actions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(255, 255, 255, 0.92);
+    color: #374151;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    padding: 0;
+}
+.image-actions button:hover {
+    background: white;
+    transform: scale(1.1);
+}
+.image-actions button.feedback {
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
 /* Google Maps Street View link card */
 .gsv-link-card {
     position: relative;
@@ -279,12 +319,45 @@ body {
 .lightbox-next { left: calc(100% + 16px); }
 .lightbox-info {
     position: absolute;
-    bottom: -36px;
+    bottom: -40px;
     left: 0;
     right: 0;
     text-align: center;
     color: #ccc;
     font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.lb-actions {
+    display: inline-flex;
+    gap: 0.5rem;
+    margin-right: 0.5rem;
+}
+.lb-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.12);
+    color: #e5e7eb;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: background 0.15s;
+    font-family: inherit;
+}
+.lb-action-btn:hover {
+    background: rgba(255,255,255,0.25);
+    color: white;
+}
+.lb-action-btn.feedback {
+    background: rgba(34,197,94,0.3);
+    color: #86efac;
 }
 
 /* Document Viewer Modal */

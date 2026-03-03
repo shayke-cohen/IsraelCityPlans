@@ -1,9 +1,10 @@
 """Street-level imagery service.
 
-Layered free sources (all work without paid API keys):
-  1. Wikimedia Commons geosearch (primary — completely free, no key needed)
-  2. Mapillary (optional enhancement — free token from mapillary.com/developer)
-  3. Google Maps Street View link (always generated — opens in browser, no API key)
+Layered free sources:
+  1. Google Street View Static API (if GOOGLE_STREETVIEW_API_KEY is set — actual images)
+  2. Wikimedia Commons geosearch (completely free, no key needed)
+  3. Mapillary (optional — free token from mapillary.com/developer)
+  4. Google Maps Street View link fallback (no API key — opens in browser)
 """
 from __future__ import annotations
 
@@ -170,6 +171,87 @@ async def _mapillary_images(lat: float, lon: float, limit: int = 5) -> list[Stre
 
 
 # ---------------------------------------------------------------------------
+# Google Street View Static API (needs GOOGLE_STREETVIEW_API_KEY)
+# ---------------------------------------------------------------------------
+
+_GSV_METADATA_URL = "https://maps.googleapis.com/maps/api/streetview/metadata"
+_GSV_HEADINGS = [0, 90, 180, 270]
+
+
+async def _check_streetview_coverage(lat: float, lon: float) -> bool:
+    """Check if Google Street View has coverage at the given coordinates."""
+    key = settings.google_streetview_api_key
+    if not key:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                _GSV_METADATA_URL,
+                params={"location": f"{lat},{lon}", "key": key},
+            )
+            if resp.status_code != 200:
+                return False
+            data = resp.json()
+            return data.get("status") == "OK"
+    except Exception:
+        logger.exception("Street View metadata check failed")
+        return False
+
+
+async def _google_streetview_images(lat: float, lon: float) -> list[StreetImage]:
+    """Generate Street View image entries via the proxy endpoint (API key hidden server-side)."""
+    key = settings.google_streetview_api_key
+    if not key:
+        return []
+
+    has_coverage = await _check_streetview_coverage(lat, lon)
+    if not has_coverage:
+        logger.debug("No Street View coverage at %.5f, %.5f", lat, lon)
+        return []
+
+    images: list[StreetImage] = []
+    for heading in _GSV_HEADINGS:
+        proxy_url = f"/api/streetview/image?lat={lat}&lon={lon}&heading={heading}"
+        images.append(
+            StreetImage(
+                url=proxy_url,
+                thumbnail_url=proxy_url,
+                source="Google Street View",
+                date="",
+                heading=heading,
+                lat=lat,
+                lon=lon,
+            )
+        )
+    return images
+
+
+async def fetch_streetview_bytes(lat: float, lon: float, heading: int = 0, size: str = "640x480") -> bytes | None:
+    """Fetch raw Street View image bytes from Google (called by the proxy endpoint)."""
+    key = settings.google_streetview_api_key
+    if not key:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                "https://maps.googleapis.com/maps/api/streetview",
+                params={
+                    "size": size,
+                    "location": f"{lat},{lon}",
+                    "heading": heading,
+                    "pitch": 0,
+                    "fov": 90,
+                    "key": key,
+                },
+            )
+            if resp.status_code == 200:
+                return resp.content
+    except Exception:
+        logger.exception("Street View image fetch failed")
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Google Maps Street View link (always free — opens in browser)
 # ---------------------------------------------------------------------------
 
@@ -193,11 +275,16 @@ def _google_maps_sv_link(lat: float, lon: float) -> StreetImage:
 
 
 async def get_street_images(lat: float, lon: float) -> list[StreetImage]:
-    """Try each imagery source. Wikimedia is always free (no key needed).
+    """Try each imagery source in order of preference.
 
-    Returns a combined list: Mapillary + Wikimedia + Google Maps link fallback.
+    When a Google Street View API key is configured, actual Street View images
+    are fetched (served via proxy to hide the key). Otherwise falls back to a
+    clickable link.
     """
     all_images: list[StreetImage] = []
+
+    gsv = await _google_streetview_images(lat, lon)
+    all_images.extend(gsv)
 
     mapillary = await _mapillary_images(lat, lon)
     all_images.extend(mapillary)
@@ -205,9 +292,10 @@ async def get_street_images(lat: float, lon: float) -> list[StreetImage]:
     wiki = await _wikimedia_images(lat, lon)
     all_images.extend(wiki)
 
-    all_images.append(_google_maps_sv_link(lat, lon))
+    if not gsv:
+        all_images.append(_google_maps_sv_link(lat, lon))
 
-    if len(all_images) <= 1:
-        logger.info("Only Google Maps link available for %.5f, %.5f", lat, lon)
+    if not all_images:
+        logger.info("No street images found for %.5f, %.5f", lat, lon)
 
     return all_images
