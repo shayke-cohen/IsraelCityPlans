@@ -8,16 +8,19 @@ Queries the Jerusalem municipality ArcGIS services at
 - Layer 1 (Indexer): DIPARCELREG — parcel data (gush/helka)
 - Layer 50 (BaseLayers): land-use designations
 
-Returns actual plan numbers that can be linked to MAVAT.
+Also queries XPLAN in parallel to resolve correct MAVAT URLs (``pl_url``)
+for TABA plan numbers.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
+import ssl
 
 import httpx
 
 from app.models.schemas import BuildingPlan, PlanType
+from app.services.coord_utils import wgs84_bbox
 from app.services.source_registry import SourceAdapter, register_adapter
 
 logger = logging.getLogger(__name__)
@@ -26,6 +29,17 @@ _BASE = "https://gisviewer.jerusalem.muni.il/arcgis/rest/services"
 _TABA_URL = f"{_BASE}/BaseLayers/MapServer/161/query"
 _LAND_USE_URL = f"{_BASE}/BaseLayers/MapServer/50/query"
 _PARCEL_URL = f"{_BASE}/Indexer/MapServer/1/query"
+
+_XPLAN_QUERY_URL = (
+    "https://ags.iplan.gov.il/arcgisiplan/rest/services/"
+    "PlanningPublic/Xplan/MapServer/{layer}/query"
+)
+_XPLAN_BBOX_RADIUS_M = 80
+
+_SSL_CTX = ssl.create_default_context()
+_SSL_CTX.set_ciphers("DEFAULT@SECLEVEL=1")
+_SSL_CTX.check_hostname = False
+_SSL_CTX.verify_mode = ssl.CERT_NONE
 
 _HEADERS = {
     "User-Agent": (
@@ -51,10 +65,54 @@ def _status_label(code: str) -> str:
     return _STATUS_MAP.get(code, code or "")
 
 
-def _mavat_url(taba: str) -> str:
-    if not taba:
-        return ""
-    return f"https://mavat.iplan.gov.il/SV4/1/{taba}"
+async def _fetch_xplan_urls(lat: float, lon: float) -> dict[str, str]:
+    """Query XPLAN to build a mapping from TABA-suffix → pl_url.
+
+    XPLAN pl_numbers are like ``101-0253286`` where ``253286`` is the TABA.
+    Returns {taba_suffix: pl_url} for all plans found near the point.
+    """
+    bbox = wgs84_bbox(lat, lon, radius_m=_XPLAN_BBOX_RADIUS_M)
+    min_lon, min_lat, max_lon, max_lat = bbox.split(",")
+    params = {
+        "geometry": f"{min_lon},{min_lat},{max_lon},{max_lat}",
+        "geometryType": "esriGeometryEnvelope",
+        "inSR": "4326",
+        "spatialRel": "esriSpatialRelIntersects",
+        "outFields": "pl_number,pl_url,mp_id",
+        "returnGeometry": "false",
+        "f": "json",
+    }
+    mapping: dict[str, str] = {}
+    try:
+        async with httpx.AsyncClient(
+            timeout=15, verify=_SSL_CTX,
+        ) as client:
+            tasks = [
+                client.get(
+                    _XPLAN_QUERY_URL.format(layer=lid),
+                    params=params,
+                    follow_redirects=True,
+                )
+                for lid in (1, 0)
+            ]
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
+            for resp in responses:
+                if isinstance(resp, Exception):
+                    continue
+                resp.raise_for_status()
+                for feat in resp.json().get("features", []):
+                    a = feat.get("attributes", {})
+                    pl_num = (a.get("pl_number") or "").strip()
+                    pl_url = (a.get("pl_url") or "").strip()
+                    mp_id = a.get("mp_id")
+                    if not pl_url and mp_id:
+                        pl_url = f"https://mavat.iplan.gov.il/SV4/1/{int(float(mp_id))}/310"
+                    if pl_num and pl_url:
+                        suffix = pl_num.rsplit("-", 1)[-1].lstrip("0") or pl_num
+                        mapping[suffix] = pl_url
+    except Exception:
+        logger.debug("XPLAN cross-reference failed for Jerusalem", exc_info=True)
+    return mapping
 
 
 async def _query(
@@ -102,6 +160,10 @@ class JerusalemEngAdapter(SourceAdapter):
             "f": "json",
         }
 
+        xplan_task = asyncio.create_task(
+            _fetch_xplan_urls(lat, lon)
+        )
+
         async with httpx.AsyncClient(
             timeout=20, headers=_HEADERS,
         ) as client:
@@ -117,6 +179,8 @@ class JerusalemEngAdapter(SourceAdapter):
             taba_features, parcel_features, land_use_features = (
                 await asyncio.gather(taba_task, parcel_task, land_use_task)
             )
+
+        xplan_url_map = await xplan_task
 
         gush = ""
         helka = ""
@@ -141,7 +205,11 @@ class JerusalemEngAdapter(SourceAdapter):
 
             status_code = (attrs.get("STATUS") or "").strip()
             status = _status_label(status_code)
-            mavat_link = _mavat_url(taba)
+            mavat_link = xplan_url_map.get(taba, "")
+            if not mavat_link:
+                mavat_link = (
+                    f"https://www.govmap.gov.il/?lay=XPLAN&q={taba}"
+                )
 
             plans.append(
                 BuildingPlan(

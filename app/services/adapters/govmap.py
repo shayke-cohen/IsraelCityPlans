@@ -30,12 +30,12 @@ _MAX_PARCELS = 8
 _SEARCH_RADIUS_M = 30
 
 
-def _mavat_parcel_url(gush: int, parcel: int) -> str:
-    """Link to MAVAT plans-by-parcel search."""
+def _govmap_parcel_url(gush: int, parcel: int) -> str:
+    """Link to GovMap parcel viewer with the parcel highlighted."""
     if not gush or not parcel:
         return ""
     return (
-        f"https://mavat.iplan.gov.il/SV4/1?gush={gush}&parcel={parcel}"
+        f"https://www.govmap.gov.il/?lay=PARCEL_ALL&q=%D7%92%D7%95%D7%A9+{gush}+%D7%97%D7%9C%D7%A7%D7%94+{parcel}"
     )
 
 
@@ -122,7 +122,7 @@ class GovMapAdapter(SourceAdapter):
             locality = (props.get("LOCALITY_N") or "").strip() or g_info.get("locality", "")
             area = props.get("LEGAL_AREA", 0)
             status = _status_label(props.get("STATUS", 0), (props.get("STATUS_TEX") or "").strip())
-            mavat_url = _mavat_parcel_url(gush, parcel)
+            govmap_url = _govmap_parcel_url(gush, parcel)
 
             plans.append(
                 BuildingPlan(
@@ -130,8 +130,8 @@ class GovMapAdapter(SourceAdapter):
                     plan_type=PlanType.OTHER,
                     status=status,
                     source=self.display_name,
-                    source_url=mavat_url,
-                    document_url=mavat_url,
+                    source_url=govmap_url,
+                    document_url=govmap_url,
                     embed_type="link",
                     details={
                         "gush": gush,

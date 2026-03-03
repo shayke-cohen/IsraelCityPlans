@@ -56,10 +56,21 @@ def _classify(name: str) -> PlanType:
     return PlanType.PLAN
 
 
-def _mavat_url(pl_number: str) -> str:
-    if not pl_number:
-        return ""
-    return f"https://mavat.iplan.gov.il/SV4/1/{pl_number}"
+def _mavat_url(attrs: dict) -> str:
+    """Build a working MAVAT URL from XPLAN attributes.
+
+    Priority: pl_url (from API) > mp_id-based > pl_number fallback.
+    """
+    pl_url = (attrs.get("pl_url") or "").strip()
+    if pl_url and pl_url.startswith("http"):
+        return pl_url
+    mp_id = attrs.get("mp_id")
+    if mp_id and str(mp_id).replace(".", "").replace("0", ""):
+        return f"https://mavat.iplan.gov.il/SV4/1/{int(float(mp_id))}/310"
+    pl_number = (attrs.get("pl_number") or "").strip()
+    if pl_number:
+        return f"https://mavat.iplan.gov.il/SV4/1/{pl_number}"
+    return ""
 
 
 async def _resolve_parcels(
@@ -181,7 +192,7 @@ class MAVATPlansAdapter(SourceAdapter):
 
                     seen_numbers.add(plan_number)
                     status = (attrs.get("station_desc") or "").strip()
-                    mavat_link = _mavat_url(plan_number)
+                    mavat_link = _mavat_url(attrs)
 
                     plans.append(
                         BuildingPlan(
