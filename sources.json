@@ -1,150 +1,214 @@
 {
   "תל אביב-יפו": {
-    "sources": ["tlv_archive", "xplan", "mavat"],
+    "sources": ["tlv_archive", "xplan", "govmap", "mavat"],
     "notes": "Rich archive with 5.3M documents spanning 1920-2020"
   },
   "תל אביב": {
-    "sources": ["tlv_archive", "xplan", "mavat"],
+    "sources": ["tlv_archive", "xplan", "govmap", "mavat"],
     "notes": "Alias for תל אביב-יפו"
   },
   "ירושלים": {
-    "sources": ["xplan", "mavat"],
-    "notes": "National XPLAN coverage"
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": "National XPLAN, GovMap parcels fallback"
   },
   "חיפה": {
-    "sources": ["xplan", "mavat"],
-    "notes": "Haifa — open data portal available"
-  },
-  "באר שבע": {
-    "sources": ["xplan", "mavat"],
-    "notes": "Beer Sheva Smart City open data"
-  },
-  "ראשון לציון": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
+    "sources": ["haifa_data", "xplan", "govmap", "mavat"],
+    "notes": "Haifa open-data zoning + national XPLAN"
   },
   "פתח תקווה": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
-  "אשדוד": {
-    "sources": ["xplan", "mavat"],
+  "ראשון לציון": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "נתניה": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
-  "חולון": {
-    "sources": ["xplan", "mavat"],
+  "אשדוד": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "בני ברק": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "באר שבע": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "חולון": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "רמת גן": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
-  "בת ים": {
-    "sources": ["xplan", "mavat"],
+  "בית שמש": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "אשקלון": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "רחובות": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "בת ים": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "הרצליה": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "חדרה": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "כפר סבא": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
-  "רעננה": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
-  "הוד השרון": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "מודיעין-מכבים-רעות": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "מודיעין": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": "Alias for מודיעין-מכבים-רעות"
   },
-  "רחובות": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
   "לוד": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "רמלה": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "רעננה": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "נצרת": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
-  "עכו": {
-    "sources": ["xplan", "mavat"],
+  "ראש העין": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
-  "טבריה": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
-  "אילת": {
-    "sources": ["xplan", "mavat"],
+  "רהט": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "קריית גת": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
-  "קריית ים": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
-  "קריית ביאליק": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
-  "קריית מוצקין": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
-  "קריית אתא": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "נהריה": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "הוד השרון": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "עפולה": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "קריית אתא": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "אום אל-פחם": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "גבעתיים": {
-    "sources": ["xplan", "mavat"],
-    "notes": ""
-  },
-  "רמת השרון": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "יבנה": {
-    "sources": ["xplan", "mavat"],
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "אילת": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "עכו": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "נתיבות": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "טבריה": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "קריית מוצקין": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "אלעד": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "רמת השרון": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "כרמיאל": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "נס ציונה": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "קריית ביאליק": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "טייבה": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "נוף הגליל": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": "Formerly Nazareth Illit"
+  },
+  "שפרעם": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "קריית אונו": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "קריית ים": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "אור יהודה": {
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": ""
+  },
+  "דימונה": {
+    "sources": ["xplan", "govmap", "mavat"],
     "notes": ""
   },
   "_default": {
-    "sources": ["xplan", "mavat"],
-    "notes": "National fallback — XPLAN covers all Israeli cities"
+    "sources": ["xplan", "govmap", "mavat"],
+    "notes": "National fallback — XPLAN plans first, GovMap parcels fallback, MAVAT link"
   }
 }

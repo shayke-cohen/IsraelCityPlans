@@ -15,11 +15,29 @@ import app.services.adapters  # noqa: F401  — trigger adapter registration
 
 from app.config import settings
 from app.db import CacheDB
-from app.models.schemas import SearchResult
+from app.models.schemas import BuildingPlan, SearchResult
 from app.services import geocoder, street_imagery
 from app.services.source_registry import CitySourceRegistry
 
 logger = logging.getLogger(__name__)
+
+
+def _filter_plans_by_address(
+    plans: list[BuildingPlan],
+    street: str,
+    house_number: str,
+) -> list[BuildingPlan]:
+    """Keep only plans whose name mentions the searched street."""
+    if not street:
+        return plans
+
+    street_clean = street.replace("רחוב", "").strip()
+
+    matched = [p for p in plans if street_clean in p.name]
+
+    # Fallback: if no plan name mentions the street, return all
+    # so the user still sees something rather than empty results.
+    return matched if matched else plans
 
 
 class SearchOrchestrator:
@@ -74,6 +92,9 @@ class SearchOrchestrator:
         plans, sources_tried = [], []
         if plans_task:
             plans, sources_tried = await plans_task
+
+        if plans and geo.street:
+            plans = _filter_plans_by_address(plans, geo.street, geo.house_number)
 
         images = []
         if images_task:
