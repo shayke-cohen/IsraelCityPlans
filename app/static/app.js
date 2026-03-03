@@ -622,16 +622,26 @@ async function loadArchiveDocs(tik, btn) {
     let html = `<div class="archive-docs-container">`;
     html += `<div class="archive-header">`;
     html += `<p>נמצאו <strong>${docs.length}</strong> מסמכים בתיק בניין <strong>${esc(tik)}</strong></p>`;
-    html += `<p class="archive-note">📌 המסמכים מאוחסנים בארכיון ההנדסה של עיריית ת״א. לצפייה והורדה, יש לפתוח את אתר הארכיון ולאשר את תנאי השימוש.</p>`;
     html += `<a href="${esc(data.page_url)}" target="_blank" class="archive-open-btn">🏛️ פתח בארכיון ההנדסה</a>`;
     html += `</div>`;
     html += `<div class="archive-docs-list">`;
     docs.forEach((doc, i) => {
-      html += `<div class="archive-doc-item">`;
+      const viewUrl = doc.view_url || doc.url || '';
+      const hasView = viewUrl.startsWith('http');
+      if (hasView) {
+        html += `<a href="${esc(viewUrl)}" target="_blank" class="archive-doc-item archive-doc-link" onclick="event.stopPropagation()">`;
+      } else {
+        html += `<div class="archive-doc-item">`;
+      }
       html += `<span class="archive-doc-icon">📄</span>`;
-      html += `<span class="archive-doc-name">מסמך ${i + 1}</span>`;
-      html += `<span class="archive-doc-id">${esc(doc.id)}.pdf</span>`;
-      html += `</div>`;
+      html += `<span class="archive-doc-name">${esc(doc.name || 'מסמך ' + (i + 1))}</span>`;
+      if (doc.date) html += `<span class="archive-doc-date">${esc(doc.date)}</span>`;
+      if (hasView) {
+        html += `<span class="archive-doc-view">צפייה ↗</span>`;
+        html += `</a>`;
+      } else {
+        html += `</div>`;
+      }
     });
     html += `</div></div>`;
     body.innerHTML = html;

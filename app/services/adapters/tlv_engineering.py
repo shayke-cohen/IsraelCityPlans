@@ -130,20 +130,100 @@ async def _fetch_archive_pdfs(
         return page_url, []
 
 
-async def fetch_archive_documents(tik: str) -> dict:
-    """Public helper: fetch archive document list for a given tik.
+_ARCHIVE_BASE = "https://handasa.tel-aviv.gov.il"
 
-    Returns ``{"page_url": str, "tik": str, "documents": [{"id": str, "url": str}]}``.
+
+async def fetch_archive_documents(tik: str) -> dict:
+    """Fetch the real document list (GUIDs, names, dates, view URLs) via Playwright.
+
+    The archive page is an Angular SPA that populates the document table
+    dynamically.  We launch a headless browser, pre-set the ``approveTerm``
+    cookie so the ToS overlay is skipped, wait for the Angular-rendered table,
+    then extract each document's GUID-based ``DocViewer`` URL which returns
+    raw PDF without any auth.
+
+    Falls back to the simpler ``httpx``-based scrape when Playwright is
+    unavailable.
     """
     padded = tik.zfill(8)
     page_url = _archive_page_url(padded)
+
+    try:
+        return await _fetch_docs_playwright(padded, page_url)
+    except Exception:
+        logger.warning(
+            "Playwright scrape failed for tik=%s, falling back to httpx",
+            padded, exc_info=True,
+        )
+        return await _fetch_docs_httpx_fallback(padded, page_url)
+
+
+async def _fetch_docs_playwright(tik: str, page_url: str) -> dict:
+    from playwright.async_api import async_playwright
+
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        ctx = await browser.new_context()
+        page = await ctx.new_page()
+
+        await ctx.add_cookies([{
+            "name": "approveTerm",
+            "value": "true",
+            "domain": "handasa.tel-aviv.gov.il",
+            "path": "/",
+        }])
+
+        await page.goto(page_url, wait_until="networkidle", timeout=30_000)
+
+        docs = await page.evaluate("""() => {
+            const rows = document.querySelectorAll('.searchResultsTable tbody tr');
+            const out = [];
+            rows.forEach(row => {
+                const link = row.querySelector('a.ms-listlink');
+                if (!link) return;
+                const tds = row.querySelectorAll('td');
+                const cells = [];
+                tds.forEach(td => cells.push(td.textContent.trim()));
+                out.push({
+                    name: link.textContent.trim(),
+                    view_url: link.getAttribute('href') || '',
+                    download_url: link.getAttribute('downloadUrl')
+                                  || link.getAttribute('downloadurl') || '',
+                    date: cells[4] || '',
+                    request_num: cells[5] || '',
+                    permit_num: cells[7] || '',
+                });
+            });
+            return out;
+        }""")
+
+        await browser.close()
+
+    for doc in docs:
+        if doc["view_url"] and not doc["view_url"].startswith("http"):
+            doc["view_url"] = _ARCHIVE_BASE + doc["view_url"]
+        if doc["download_url"] and not doc["download_url"].startswith("http"):
+            doc["download_url"] = _ARCHIVE_BASE + doc["download_url"]
+
+    return {"page_url": page_url, "tik": tik, "documents": docs}
+
+
+async def _fetch_docs_httpx_fallback(tik: str, page_url: str) -> dict:
+    """Lightweight fallback: extract /sc9/ PDF URLs from the static HTML."""
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-        _, pdf_urls = await _fetch_archive_pdfs(client, padded)
+        _, pdf_urls = await _fetch_archive_pdfs(client, tik)
     docs = []
     for url in pdf_urls:
         doc_id = url.rsplit("/", 1)[-1].replace(".pdf", "")
-        docs.append({"id": doc_id, "url": url})
-    return {"page_url": page_url, "tik": padded, "documents": docs}
+        docs.append({
+            "name": doc_id,
+            "view_url": url,
+            "download_url": "",
+            "date": "",
+            "request_num": "",
+            "permit_num": "",
+        })
+    return {"page_url": page_url, "tik": tik, "documents": docs}
 
 
 @register_adapter
