@@ -1,73 +1,125 @@
-# Israel Address Building Plans Finder
+# Israel Building Plans Finder (POC)
 
-Search Israeli building plans, permits, and street images by address. Aggregates data from multiple municipal sources (Tel Aviv Archive, XPlan, Mavat) with geocoding, caching, and parallel lookups.
+Search for building plans (היתרי בנייה, תוכניות בניין עיר) and street-level images by Israeli address.
 
 ## Features
 
-- **Geocoding** -- resolve Hebrew addresses to coordinates via Nominatim
-- **Building plans** -- query municipal plan databases by city with a pluggable source registry
-- **Street imagery** -- fetch Mapillary and Google Street View images near the address
-- **Caching** -- SQLite-backed cache with configurable TTL to avoid redundant lookups
-- **Web UI** -- FastAPI server with a static frontend
-- **CLI** -- Rich-powered terminal interface
+- **Building plans search** via layered city source registry:
+  - Tel Aviv: engineering archive (5.3M+ documents) via GIS open-data API
+  - Jerusalem + all other cities: XPLAN national planning database
+  - MAVAT fallback with deep-link to interactive viewer
+- **Street-level images** from Mapillary (free) and Google Street View (optional)
+- **Dual interface**: Web UI (Hebrew RTL) + CLI with Rich tables
+- **SQLite cache** with TTL-based expiry
+- **All free APIs** — no paid services required
 
-## Quickstart
+## Quick Start
 
 ```bash
-# Clone and set up
-git clone https://github.com/shayke-cohen/AmitAddress.git
-cd AmitAddress
+# Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 
-# (Optional) configure API keys for street imagery
+# (Optional) Configure API keys in .env
 cp .env.example .env
-# edit .env with your MAPILLARY_CLIENT_TOKEN and/or GOOGLE_STREETVIEW_API_KEY
-```
+# Edit .env with your Mapillary token / Google SV key
 
-### CLI
-
-```bash
-python cli.py search "דיזנגוף 50 תל אביב"
-python cli.py sources        # list registered city sources
-python cli.py cache stats    # show cache statistics
-python cli.py cache clear    # clear cached results
-```
-
-### Web Server
-
-```bash
+# Start the web server
 uvicorn app.main:app --reload
-# Open http://localhost:8000 (UI) or http://localhost:8000/docs (API docs)
+
+# Open http://localhost:8000 in your browser
 ```
 
-## Configuration
+## CLI Usage
 
-All settings are optional and loaded from environment variables or a `.env` file:
+```bash
+# Full search (plans + images)
+python cli.py search "דיזנגוף 50, תל אביב"
 
-| Variable | Description |
-|----------|-------------|
-| `MAPILLARY_CLIENT_TOKEN` | Mapillary API token for street-level imagery |
-| `GOOGLE_STREETVIEW_API_KEY` | Google Street View API key |
+# Plans only
+python cli.py search "בן יהודה 10, ירושלים" --plans-only
+
+# Images only
+python cli.py search "הרצל 1, חיפה" --images-only
+
+# List registered city sources
+python cli.py sources
+
+# Cache management
+python cli.py cache stats
+python cli.py cache clear
+```
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/search?q=...` | GET | Search by address |
+| `/api/sources` | GET | List registered city sources |
+| `/api/cache/stats` | GET | Cache statistics |
+| `/api/cache` | DELETE | Clear cache |
+| `/docs` | GET | Interactive API docs (Swagger) |
+
+## Adding a New City
+
+1. Add an entry to `sources.json`:
+   ```json
+   "חיפה": {
+     "sources": ["haifa_gis", "xplan", "mavat"],
+     "notes": "Haifa municipality GIS"
+   }
+   ```
+
+2. Create an adapter in `app/services/adapters/haifa_gis.py`:
+   ```python
+   from app.services.source_registry import SourceAdapter, register_adapter
+
+   @register_adapter
+   class HaifaGISAdapter(SourceAdapter):
+       @property
+       def name(self) -> str:
+           return "haifa_gis"
+       # ... implement search()
+   ```
+
+3. Import it in `app/services/adapters/__init__.py`
+
+## Data Sources
+
+| Source | Coverage | API Type | Cost |
+|--------|----------|----------|------|
+| Tel Aviv GIS | Tel Aviv-Yafo | REST/SOAP | Free |
+| XPLAN | All of Israel | ArcGIS REST | Free |
+| MAVAT | All of Israel | Web link | Free |
+| Nominatim | Global | REST | Free |
+| Mapillary | Global | REST | Free |
+| Google Street View | Global | REST | Free (10K/mo) |
 
 ## Project Structure
 
 ```
-├── cli.py              # CLI entry point (click + rich)
-├── sources.json        # City-to-source mapping
-├── requirements.txt    # Python dependencies
+├── cli.py                    # CLI entry point
+├── sources.json              # City source registry config
+├── requirements.txt
 ├── app/
-│   ├── main.py         # FastAPI app
-│   ├── orchestrator.py # Shared search pipeline
-│   ├── config.py       # Settings (pydantic-settings)
-│   ├── db.py           # SQLite cache layer
-│   ├── models/         # Pydantic schemas
-│   ├── routers/        # API routes
-│   ├── services/       # Geocoder, adapters, street imagery
-│   └── static/         # Web frontend
+│   ├── main.py               # FastAPI entry point
+│   ├── config.py             # Settings
+│   ├── db.py                 # SQLite cache
+│   ├── orchestrator.py       # Shared search logic
+│   ├── routers/
+│   │   └── search.py         # API endpoints
+│   ├── services/
+│   │   ├── geocoder.py       # Nominatim geocoding
+│   │   ├── street_imagery.py # Mapillary + Google SV
+│   │   ├── source_registry.py # Adapter base + registry
+│   │   └── adapters/
+│   │       ├── tlv_archive.py  # Tel Aviv GIS
+│   │       ├── xplan.py        # XPLAN national
+│   │       └── mavat.py        # MAVAT fallback
+│   ├── models/
+│   │   └── schemas.py        # Pydantic models
+│   └── static/               # Web UI files
 ```
-
-## License
-
-MIT
