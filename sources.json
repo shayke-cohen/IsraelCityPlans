@@ -1,10 +1,10 @@
 {
   "תל אביב-יפו": {
-    "sources": ["tlv_engineering", "meirim", "tlv_archive", "xplan", "mavat_plans"],
-    "notes": "Engineering archive + permits first, then Meirim proximity, TLV area plans, XPLAN, MAVAT plans"
+    "sources": ["tlv_engineering", "meirim", "tlv_archive", "xplan", "govmap", "mavat_plans"],
+    "notes": "Engineering archive + permits first, then Meirim proximity, TLV area plans, XPLAN, GovMap parcels, MAVAT plans"
   },
   "תל אביב": {
-    "sources": ["tlv_engineering", "meirim", "tlv_archive", "xplan", "mavat_plans"],
+    "sources": ["tlv_engineering", "meirim", "tlv_archive", "xplan", "govmap", "mavat_plans"],
     "notes": "Alias for תל אביב-יפו"
   },
   "ירושלים": {
