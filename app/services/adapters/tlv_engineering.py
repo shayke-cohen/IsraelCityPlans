@@ -173,7 +173,13 @@ async def _fetch_docs_playwright(tik: str, page_url: str) -> dict:
             "path": "/",
         }])
 
-        await page.goto(page_url, wait_until="networkidle", timeout=30_000)
+        await page.goto(page_url, wait_until="domcontentloaded", timeout=30_000)
+        try:
+            await page.wait_for_selector(
+                ".searchResultsTable tbody tr", timeout=20_000,
+            )
+        except Exception:
+            logger.debug("Table selector not found for tik=%s, trying fallback", tik)
 
         docs = await page.evaluate("""() => {
             const rows = document.querySelectorAll('.searchResultsTable tbody tr');
@@ -269,28 +275,25 @@ class TLVEngineeringAdapter(SourceAdapter):
                 if code:
                     tik = _build_tik(code, house_number)
                     if tik:
-                        page_url, pdf_urls = await _fetch_archive_pdfs(client, tik)
-                        pdf_count = len(pdf_urls)
-                        status = f"{pdf_count} מסמכים בארכיון" if pdf_count else "חיפוש בארכיון"
+                        page_url = _archive_page_url(tik)
                         plans.append(
                             BuildingPlan(
                                 name=f"תיק בניין – {street} {house_number}",
                                 plan_type=PlanType.PLAN,
-                                status=status,
+                                status="חיפוש בארכיון",
                                 source=self.display_name,
                                 source_url=page_url,
                                 document_url=page_url,
                                 embed_type="archive",
                                 details={
                                     "tik_binyan": tik,
-                                    "pdf_count": pdf_count,
                                     "archive_url": page_url,
                                 },
                             )
                         )
                         logger.info(
-                            "TLV archive tik=%s: %d PDFs for %s %s",
-                            tik, pdf_count, street, house_number,
+                            "TLV archive tik=%s for %s %s",
+                            tik, street, house_number,
                         )
 
             # --- 2. Building permits (layer 772) by address match ---

@@ -496,8 +496,7 @@ function renderPlans(plans) {
 
     if (plan.embed_type === 'archive' && plan.details && plan.details.tik_binyan) {
       const tik = plan.details.tik_binyan;
-      const pdfCount = plan.details.pdf_count || 0;
-      actionsHtml += `<button onclick="event.stopPropagation(); loadArchiveDocs('${escAttr(tik)}', this)" class="plan-action-btn primary">📂 הצג מסמכים (${pdfCount})</button>`;
+      actionsHtml += `<button onclick="event.stopPropagation(); loadArchiveDocs('${escAttr(tik)}', this)" class="plan-action-btn primary">📂 הצג מסמכים</button>`;
       actionsHtml += `<a href="${esc(plan.document_url)}" target="_blank" class="plan-action-btn secondary" onclick="event.stopPropagation()">🏛️ פתח אתר ארכיון</a>`;
       actionsHtml += `<button onclick="event.stopPropagation(); copyTik('${escAttr(tik)}', this)" class="plan-action-btn secondary">📋 העתק מס׳ תיק: ${esc(tik)}</button>`;
     } else if (plan.document_url) {
@@ -595,14 +594,20 @@ function closeDocViewer() {
   document.body.style.overflow = '';
 }
 
+let _archiveListHtml = '';
+let _archiveListTitle = '';
+let _archiveListExtHref = '';
+
 async function loadArchiveDocs(tik, btn) {
   const viewer = document.getElementById('doc-viewer');
   const body = document.getElementById('doc-viewer-body');
   const titleEl = document.getElementById('doc-viewer-title');
   const extLink = document.getElementById('doc-viewer-external');
 
-  titleEl.textContent = `תיק בניין ${tik} – מסמכי ארכיון הנדסה`;
-  extLink.href = `https://handasa.tel-aviv.gov.il/Pages/searchResultsAnonPageNew.aspx?folderId=${tik}`;
+  _archiveListTitle = `תיק בניין ${tik} – מסמכי ארכיון הנדסה`;
+  _archiveListExtHref = `https://handasa.tel-aviv.gov.il/Pages/searchResultsAnonPageNew.aspx?folderId=${tik}`;
+  titleEl.textContent = _archiveListTitle;
+  extLink.href = _archiveListExtHref;
 
   body.innerHTML = '<div style="padding:2rem;text-align:center;color:#666">טוען מסמכים...</div>';
   viewer.classList.remove('hidden');
@@ -629,7 +634,7 @@ async function loadArchiveDocs(tik, btn) {
       const viewUrl = doc.view_url || doc.url || '';
       const hasView = viewUrl.startsWith('http');
       if (hasView) {
-        html += `<a href="${esc(viewUrl)}" target="_blank" class="archive-doc-item archive-doc-link" onclick="event.stopPropagation()">`;
+        html += `<div class="archive-doc-item archive-doc-link" onclick="previewArchiveDoc('${escAttr(viewUrl)}', '${escAttr(doc.name || 'מסמך ' + (i + 1))}')">`;
       } else {
         html += `<div class="archive-doc-item">`;
       }
@@ -637,17 +642,45 @@ async function loadArchiveDocs(tik, btn) {
       html += `<span class="archive-doc-name">${esc(doc.name || 'מסמך ' + (i + 1))}</span>`;
       if (doc.date) html += `<span class="archive-doc-date">${esc(doc.date)}</span>`;
       if (hasView) {
-        html += `<span class="archive-doc-view">צפייה ↗</span>`;
-        html += `</a>`;
-      } else {
-        html += `</div>`;
+        html += `<a href="${esc(viewUrl)}" target="_blank" class="archive-doc-ext" onclick="event.stopPropagation()" title="פתח בחלון חדש">↗</a>`;
+        html += `<span class="archive-doc-view">צפייה</span>`;
       }
+      html += `</div>`;
     });
     html += `</div></div>`;
+    _archiveListHtml = html;
     body.innerHTML = html;
   } catch (err) {
     body.innerHTML = `<div style="padding:2rem;text-align:center;color:#c00">${esc(err.message)}</div>`;
   }
+}
+
+function previewArchiveDoc(url, name) {
+  const body = document.getElementById('doc-viewer-body');
+  const titleEl = document.getElementById('doc-viewer-title');
+  const extLink = document.getElementById('doc-viewer-external');
+
+  titleEl.textContent = name;
+  extLink.href = url;
+
+  body.innerHTML =
+    `<div class="archive-preview-wrapper">` +
+    `<div class="archive-preview-bar">` +
+    `<button onclick="backToArchiveList()" class="archive-back-btn">→ חזרה לרשימה</button>` +
+    `<span class="archive-preview-name">${esc(name)}</span>` +
+    `</div>` +
+    `<iframe src="${esc(url)}" title="${esc(name)}"></iframe>` +
+    `</div>`;
+}
+
+function backToArchiveList() {
+  const body = document.getElementById('doc-viewer-body');
+  const titleEl = document.getElementById('doc-viewer-title');
+  const extLink = document.getElementById('doc-viewer-external');
+
+  titleEl.textContent = _archiveListTitle;
+  extLink.href = _archiveListExtHref;
+  body.innerHTML = _archiveListHtml;
 }
 
 function copyTik(tik, btn) {
