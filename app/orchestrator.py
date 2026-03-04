@@ -15,7 +15,7 @@ import app.services.adapters  # noqa: F401  — trigger adapter registration
 
 from app.config import settings
 from app.db import CacheDB
-from app.models.schemas import BuildingPlan, SearchResult
+from app.models.schemas import BuildingPlan, ParcelInfo, SearchResult
 from app.services import geocoder, street_imagery
 from app.services.source_registry import CitySourceRegistry
 
@@ -95,6 +95,27 @@ def _rank_and_cap(
     return result
 
 
+def _extract_parcels(plans: list[BuildingPlan]) -> list[ParcelInfo]:
+    """Pull GovMap parcel entries out of the plans list into ParcelInfo objects."""
+    parcels: list[ParcelInfo] = []
+    for p in plans:
+        d = p.details
+        if d.get("gush") and p.source.startswith("GovMap"):
+            parcels.append(
+                ParcelInfo(
+                    gush=d["gush"],
+                    parcel=d.get("parcel", 0),
+                    locality=d.get("locality", ""),
+                    area_sqm=d.get("legal_area_sqm", 0),
+                    status=p.status,
+                    county=d.get("county", ""),
+                    region=d.get("region", ""),
+                    govmap_url=p.source_url,
+                )
+            )
+    return parcels
+
+
 class SearchOrchestrator:
     def __init__(self) -> None:
         self.registry = CitySourceRegistry(settings.sources_json_path)
@@ -148,6 +169,9 @@ class SearchOrchestrator:
         if plans_task:
             plans, sources_tried = await plans_task
 
+        parcels = _extract_parcels(plans)
+        plans = [p for p in plans if not (p.details.get("gush") and p.source.startswith("GovMap"))]
+
         if plans:
             plans = _rank_and_cap(plans, geo.street, geo.house_number)
 
@@ -159,6 +183,7 @@ class SearchOrchestrator:
         result = SearchResult(
             address=address,
             geocode=geo,
+            parcels=parcels,
             plans=plans,
             images=images,
             sources_tried=sources_tried,

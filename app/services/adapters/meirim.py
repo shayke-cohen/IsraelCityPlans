@@ -187,7 +187,7 @@ class MeirimAdapter(SourceAdapter):
                     source=self.display_name,
                     source_url=mavat_url,
                     document_url=mavat_url,
-                    embed_type="link",
+                    embed_type="iframe",
                     details={
                         "plan_number": pl_number,
                         "area_dunam": round(area_dunam, 1) if area_dunam else 0,

@@ -203,7 +203,7 @@ class MAVATPlansAdapter(SourceAdapter):
                             source=self.display_name,
                             source_url=mavat_link,
                             document_url=mavat_link,
-                            embed_type="link",
+                            embed_type="iframe",
                             details={
                                 "plan_number": plan_number,
                                 "mavat_code": attrs.get("mavat_code", ""),
@@ -226,7 +226,7 @@ class MAVATPlansAdapter(SourceAdapter):
                     source=self.display_name,
                     source_url=fallback_url,
                     document_url=fallback_url,
-                    embed_type="link",
+                    embed_type="iframe",
                     details={
                         "gush": gush,
                         "parcel": helka,
@@ -246,7 +246,7 @@ class MAVATPlansAdapter(SourceAdapter):
                     source=self.display_name,
                     source_url=fallback_url,
                     document_url=fallback_url,
-                    embed_type="link",
+                    embed_type="iframe",
                     details={"is_fallback": True},
                 )
             )

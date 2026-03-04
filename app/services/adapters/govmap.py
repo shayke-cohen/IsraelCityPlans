@@ -132,7 +132,7 @@ class GovMapAdapter(SourceAdapter):
                     source=self.display_name,
                     source_url=govmap_url,
                     document_url=govmap_url,
-                    embed_type="link",
+                    embed_type="iframe",
                     details={
                         "gush": gush,
                         "parcel": parcel,

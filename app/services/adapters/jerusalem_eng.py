@@ -219,7 +219,7 @@ class JerusalemEngAdapter(SourceAdapter):
                     source=self.display_name,
                     source_url=mavat_link,
                     document_url=mavat_link,
-                    embed_type="link",
+                    embed_type="iframe",
                     details={
                         "plan_number": taba,
                         "taba": taba,

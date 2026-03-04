@@ -43,9 +43,21 @@ class StreetImage(BaseModel):
     lon: float | None = None
 
 
+class ParcelInfo(BaseModel):
+    gush: int
+    parcel: int
+    locality: str = ""
+    area_sqm: float = 0
+    status: str = ""
+    county: str = ""
+    region: str = ""
+    govmap_url: str = ""
+
+
 class SearchResult(BaseModel):
     address: str
     geocode: GeocodeResult | None = None
+    parcels: list[ParcelInfo] = Field(default_factory=list)
     plans: list[BuildingPlan] = Field(default_factory=list)
     images: list[StreetImage] = Field(default_factory=list)
     sources_tried: list[str] = Field(default_factory=list)

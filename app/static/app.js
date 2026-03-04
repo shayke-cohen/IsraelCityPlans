@@ -387,6 +387,8 @@ function renderResults(data) {
     setTimeout(() => { btn.textContent = 'העתק קישור'; }, 2000);
   };
 
+  renderParcels(data.parcels || []);
+  renderUsefulLinks(geo, data.parcels || []);
   renderImages(data.images);
   renderPlans(data.plans);
 
@@ -394,6 +396,143 @@ function renderResults(data) {
   mapFrame.src = `https://maps.google.com/maps?q=${geo.lat},${geo.lon}&z=17&output=embed`;
 
   document.getElementById('sources-tried').textContent = data.sources_tried.join(', ');
+}
+
+function renderParcels(parcels) {
+  const section = document.getElementById('parcel-section');
+  const container = document.getElementById('parcel-cards');
+  container.innerHTML = '';
+
+  if (!parcels.length) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  section.classList.remove('hidden');
+
+  parcels.forEach((p) => {
+    const card = document.createElement('div');
+    card.className = 'parcel-card';
+
+    let detailsHtml = '';
+    if (p.locality) detailsHtml += `<div class="parcel-detail"><span class="parcel-label">יישוב</span><span>${esc(p.locality)}</span></div>`;
+    if (p.area_sqm) detailsHtml += `<div class="parcel-detail"><span class="parcel-label">שטח</span><span>${p.area_sqm.toLocaleString('he-IL')} מ"ר</span></div>`;
+    if (p.status) detailsHtml += `<div class="parcel-detail"><span class="parcel-label">סטטוס</span><span>${esc(p.status)}</span></div>`;
+    if (p.county) detailsHtml += `<div class="parcel-detail"><span class="parcel-label">מחוז</span><span>${esc(p.county)}</span></div>`;
+    if (p.region) detailsHtml += `<div class="parcel-detail"><span class="parcel-label">נפה</span><span>${esc(p.region)}</span></div>`;
+
+    card.innerHTML = `
+      <div class="parcel-header">
+        <div class="parcel-id">
+          <span class="parcel-gush">גוש <strong>${p.gush}</strong></span>
+          <span class="parcel-helka">חלקה <strong>${p.parcel}</strong></span>
+        </div>
+        <button onclick="navigator.clipboard.writeText('גוש ${p.gush} חלקה ${p.parcel}'); this.textContent='✓ הועתק'; setTimeout(()=>this.textContent='העתק', 1500)" class="parcel-copy-btn">העתק</button>
+      </div>
+      <div class="parcel-details-grid">${detailsHtml}</div>
+      <div class="parcel-actions">
+        ${p.govmap_url ? `<a href="${esc(p.govmap_url)}" target="_blank" class="parcel-link-btn">🗺️ GovMap</a>` : ''}
+        <a href="https://www.govmap.gov.il/?lay=XPLAN&q=%D7%92%D7%95%D7%A9+${p.gush}+%D7%97%D7%9C%D7%A7%D7%94+${p.parcel}" target="_blank" class="parcel-link-btn">📋 תוכניות בחלקה</a>
+        <a href="https://mavat.iplan.gov.il/SV4/1?gush=${p.gush}&parcel=${p.parcel}" target="_blank" class="parcel-link-btn">🏗️ מבא"ת</a>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderUsefulLinks(geo, parcels) {
+  const section = document.getElementById('links-section');
+  const container = document.getElementById('useful-links');
+  container.innerHTML = '';
+  section.classList.remove('hidden');
+
+  const links = [];
+
+  links.push({
+    icon: '🗺️',
+    label: 'GovMap',
+    desc: 'מפות ממשלתיות',
+    url: `https://www.govmap.gov.il/?c=${geo.lon},${geo.lat}&z=17`,
+  });
+
+  links.push({
+    icon: '🏗️',
+    label: 'מבא"ת',
+    desc: 'מידע תכנוני ארצי',
+    url: `https://mavat.iplan.gov.il/SV4/1?lon=${geo.lon}&lat=${geo.lat}&z=3`,
+  });
+
+  links.push({
+    icon: '📍',
+    label: 'Google Maps',
+    desc: 'ניווט ותצוגת רחוב',
+    url: `https://www.google.com/maps?q=${geo.lat},${geo.lon}`,
+  });
+
+  links.push({
+    icon: '📐',
+    label: 'רישוי זמין',
+    desc: 'היתרי בנייה מקוונים',
+    url: 'https://www.rishui.gov.il/',
+  });
+
+  if (parcels.length) {
+    const p = parcels[0];
+    links.push({
+      icon: '📑',
+      label: 'נסח טאבו',
+      desc: `גוש ${p.gush} חלקה ${p.parcel}`,
+      url: `https://ecom.gov.il/counter/tabu/homepage`,
+    });
+  }
+
+  const city = (geo.city || '').trim();
+  const cityLower = city;
+  if (cityLower === 'תל אביב-יפו' || cityLower === 'תל אביב יפו' || cityLower === 'תל אביב') {
+    links.push({
+      icon: '🏛️',
+      label: 'ארכיון הנדסה ת"א',
+      desc: 'תיקי בניין ותוכניות',
+      url: 'https://handasa.tel-aviv.gov.il/',
+    });
+  } else if (cityLower === 'ירושלים') {
+    links.push({
+      icon: '🏛️',
+      label: 'הנדסה ירושלים',
+      desc: 'תוכניות בנייה',
+      url: 'https://gisviewer.jerusalem.muni.il/',
+    });
+  } else if (cityLower === 'חיפה') {
+    links.push({
+      icon: '🏛️',
+      label: 'עיריית חיפה',
+      desc: 'מידע תכנוני',
+      url: 'https://www.haifa.muni.il/',
+    });
+  }
+
+  links.push({
+    icon: '🌐',
+    label: 'מעירים',
+    desc: 'שקיפות תכנון ובנייה',
+    url: `https://www.meirim.org/search?text=${encodeURIComponent(geo.display_name)}`,
+  });
+
+  links.forEach((link) => {
+    const el = document.createElement('a');
+    el.className = 'useful-link-card';
+    el.href = link.url;
+    el.target = '_blank';
+    el.rel = 'noopener';
+    el.innerHTML = `
+      <span class="useful-link-icon">${link.icon}</span>
+      <div class="useful-link-text">
+        <span class="useful-link-label">${esc(link.label)}</span>
+        <span class="useful-link-desc">${esc(link.desc)}</span>
+      </div>
+    `;
+    container.appendChild(el);
+  });
 }
 
 function renderImages(images) {
@@ -579,7 +718,38 @@ function openDocViewer(url, title, type) {
   } else if (type === 'image') {
     body.innerHTML = `<img src="${esc(url)}" alt="${esc(title)}" style="padding: 1rem;">`;
   } else {
-    body.innerHTML = `<iframe src="${esc(url)}" title="${esc(title)}" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>`;
+    const iframeId = 'viewer-iframe-' + Date.now();
+    body.innerHTML =
+      `<div class="iframe-viewer-wrapper">` +
+      `<div class="iframe-loading-wrapper">` +
+      `<div class="iframe-loading-msg">⏳ טוען תוכנית...</div>` +
+      `</div>` +
+      `<iframe id="${iframeId}" src="${esc(url)}" title="${esc(title)}" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>` +
+      `<div class="iframe-hint-bar" style="display:none">` +
+      `<span>לא רואים תוכן?</span>` +
+      `<a href="${esc(url)}" target="_blank" class="iframe-hint-link">פתח באתר המקור ↗</a>` +
+      `</div>` +
+      `</div>`;
+    const iframe = document.getElementById(iframeId);
+    let loaded = false;
+    iframe.addEventListener('load', () => {
+      loaded = true;
+      const loadingEl = body.querySelector('.iframe-loading-wrapper');
+      if (loadingEl) loadingEl.remove();
+      const hintBar = body.querySelector('.iframe-hint-bar');
+      if (hintBar) hintBar.style.display = '';
+    });
+    setTimeout(() => {
+      if (!loaded) {
+        body.innerHTML =
+          `<div class="iframe-fallback">` +
+          `<div class="iframe-fallback-icon">🔗</div>` +
+          `<p>לא ניתן להציג את התוכנית בתוך הדף.</p>` +
+          `<p>האתר החיצוני חוסם הטמעה.</p>` +
+          `<a href="${esc(url)}" target="_blank" class="iframe-fallback-btn">פתח באתר המקור ↗</a>` +
+          `</div>`;
+      }
+    }, 12000);
   }
 
   viewer.classList.remove('hidden');

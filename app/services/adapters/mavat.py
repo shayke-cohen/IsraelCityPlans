@@ -49,7 +49,7 @@ class MAVATAdapter(SourceAdapter):
                 source=self.display_name,
                 source_url=mavat_url,
                 document_url=mavat_url,
-                embed_type="link",
+                embed_type="iframe",
                 details={"is_fallback": True},
             )
         ]

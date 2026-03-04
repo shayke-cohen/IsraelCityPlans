@@ -344,7 +344,7 @@ class TLVEngineeringAdapter(SourceAdapter):
                             source=self.display_name,
                             source_url=doc_url,
                             document_url=doc_url,
-                            embed_type="link",
+                            embed_type="iframe",
                             details={
                                 "request_num": attrs.get("request_num"),
                                 "permit_num": attrs.get("permission_num"),
